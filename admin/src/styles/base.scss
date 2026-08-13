@@ -1,0 +1,108 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-800);
+  background-color: var(--card-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizelegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+li {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.main-wrap {
+  background-color: var(--page-bg);
+}
+
+// Page-level styles from YDAdmin
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink-900);
+  letter-spacing: 0.5px;
+}
+
+.page-desc {
+  font-size: 12.5px;
+  color: var(--ink-500);
+  margin: 4px 0 0;
+}
+
+// Card title with blue accent bar
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--brand-500);
+    flex-shrink: 0;
+  }
+}
+
+// Filter bar
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-100);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-xs);
+}
+
+// Number font
+.num {
+  font-family: var(--font-num);
+}
+
+// 通用文字工具（与设计稿 Tag tone 协调）
+.text-secondary {
+  color: var(--ink-500);
+  font-size: 12.5px;
+}
+
+.text-brand {
+  color: var(--brand-500);
+  font-size: 12px;
+}

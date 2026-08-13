@@ -1,0 +1,66 @@
+// semantic.scss — Purpose-based mappings referencing primitives.
+// Existing components and UnoCSS point here for compatibility.
+
+:root {
+  // ─── Text ───
+  --color-text-primary: var(--ink-800);
+  --color-text-secondary: var(--ink-600);
+  --color-text-tertiary: var(--ink-500);
+  --color-text-placeholder: var(--ink-400);
+  --color-text-disabled: var(--ink-400);
+  --color-text-inverse: #ffffff;
+
+  // ─── Background ───
+  --color-bg: var(--card-bg);
+  --color-bg-page: var(--page-bg);
+  --color-bg-card: var(--card-bg);
+  --color-bg-hover: var(--ink-50);
+  --color-bg-active: var(--ink-100);
+  --color-surface: var(--card-bg);
+
+  // ─── Border ───
+  --color-border: var(--ink-200);
+  --color-border-light: var(--ink-100);
+  --color-divider: var(--ink-100);
+
+  // ─── Primary ───
+  --color-primary: var(--brand-500);
+  --color-primary-hover: var(--brand-600);
+  --color-primary-light: var(--brand-400);
+  --color-primary-bg: var(--brand-50);
+  --color-primary-border: var(--brand-100);
+  --color-brand: var(--brand-500);
+  --color-brand-hover: var(--brand-600);
+  --color-brand-active: var(--brand-600);
+  --color-brand-ghost: var(--brand-50);
+
+  // ─── Status ───
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--amber-500);
+  --color-info: var(--sky-500);
+
+  // ─── UnoCSS theme aliases (consumed by uno.config.ts) ───
+  --color-primary-active: var(--brand-600);
+  --color-focus-ring: var(--brand-100);
+  --color-success-plain: var(--success);
+  --color-warning-plain: var(--amber-500);
+  --color-danger-plain: var(--danger);
+  --color-info-plain: var(--sky-500);
+
+  // ─── Sidebar (compat with legacy components) ───
+  --color-sidebar-bg: var(--ink-900);
+  --color-sidebar-active: var(--brand-600);
+
+  // ─── Gray scale (compat) ───
+  --gray-50: var(--ink-50);
+  --gray-100: var(--ink-100);
+  --gray-200: var(--ink-200);
+  --gray-300: var(--ink-300);
+  --gray-400: var(--ink-400);
+  --gray-500: var(--ink-500);
+  --gray-600: var(--ink-600);
+  --gray-700: var(--ink-700);
+  --gray-800: var(--ink-800);
+  --gray-900: var(--ink-900);
+}

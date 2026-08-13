@@ -1,0 +1,1 @@
+function n(n){const t=Number(n);return Number.isFinite(t)?Math.round(100*t):0}function t(n){const t=Number(n);return Number.isFinite(t)?Math.round(t)/100:0}function r(n){return t(n).toFixed(2)}export{t as a,r as f,n as y};

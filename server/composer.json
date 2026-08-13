@@ -1,0 +1,93 @@
+{
+    "name": "yd-admin/framework",
+    "description": "元点Shop - 开源通用后台管理系统框架",
+    "type": "project",
+    "keywords": [
+        "admin",
+        "framework",
+        "thinkphp",
+        "vue3",
+        "yd-admin"
+    ],
+    "homepage": "https://www.dev007.cn/",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "元点Shop Team",
+            "homepage": "https://www.dev007.cn"
+        }
+    ],
+    "require": {
+        "php": ">=8.0.0",
+        "topthink/framework": "8.1.2",
+        "topthink/think-orm": "4.0.40",
+        "topthink/think-filesystem": "^2.0|^3.0",
+        "topthink/think-multi-app": "^1.1",
+        "firebase/php-jwt": "^7.0",
+        "wechatpay/wechatpay": "^1.4",
+        "alipaysdk/easysdk": "^2.2",
+        "qiniu/php-sdk": "^7.14",
+        "alibabacloud/oss-v2": "^0.4.0",
+        "qcloud/cos-sdk-v5": "^2.6",
+        "tencentcloud/sms": "^3.0",
+        "alibabacloud/dysmsapi-20170525": "^4.5",
+        "w7corp/easywechat": "^6.17",
+        "zircote/swagger-php": "^4.0",
+        "topthink/think-queue": "^3.0",
+        "phpoffice/phpspreadsheet": "^2.3"
+    },
+    "require-dev": {
+        "topthink/think-dumper": "^1.0",
+        "topthink/think-trace": "^2.0@dev",
+        "phpunit/phpunit": "^10.0|^11.0",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "autoload": {
+        "classmap": [
+            "extend/think/model/"
+        ],
+        "psr-4": {
+            "app\\": "app",
+            "core\\": "core/",
+            "plugins\\coupon\\": "plugins/coupon/",
+            "plugins\\flash_sale\\": "plugins/flash_sale/",
+            "plugins\\full_discount\\": "plugins/full_discount/",
+            "plugins\\group_buy\\": "plugins/group_buy/",
+            "plugins\\lottery\\": "plugins/lottery/",
+            "plugins\\new_user_gift\\": "plugins/new_user_gift/",
+            "plugins\\sign\\": "plugins/sign/",
+            "plugins\\points_product\\": "plugins/points_product/",
+            "plugins\\points_order\\": "plugins/points_order/",
+            "plugins\\content_mgmt\\": "plugins/content_mgmt/",
+            "plugins\\article\\": "plugins/article/",
+            "plugins\\ai_assistant\\": "plugins/ai_assistant/",
+            "plugins\\distribution\\": "plugins/distribution/"
+        },
+        "psr-0": {
+            "": "extend/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "platform": {
+            "php": "8.2.0"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php think service:discover",
+            "@php think vendor:publish"
+        ],
+        "lint": "php-cs-fixer fix --dry-run --diff",
+        "lint:fix": "php-cs-fixer fix",
+        "analyse": "phpstan analyse",
+        "test": "phpunit --colors=always",
+        "test:coverage": "phpunit --colors=always --coverage-text"
+    }
+}

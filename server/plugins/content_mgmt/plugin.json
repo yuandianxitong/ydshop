@@ -1,0 +1,29 @@
+{
+  "code": "content_mgmt",
+  "name": "内容管理",
+  "version": "1.0.0",
+  "description": "用户协议、隐私政策、关于我们等静态内容维护",
+  "author": "ydadmin",
+  "category": "core",
+  "parent_menu": "Plugin",
+  "palette": ["#64748b", "#334155"],
+  "requires": { "php": ">=8.0", "framework": ">=1.0.0", "plugins": [] },
+  "menus": [
+    {
+      "name": "Content",
+      "title": "内容管理",
+      "path": "/content/agreement",
+      "component": "/content/agreement/index",
+      "icon": "i-svg:newspaper",
+      "permission": "agreement.list",
+      "sort": 1
+    }
+  ],
+  "permissions": [
+    { "name": "agreement.list",   "title": "内容列表", "group": "content" },
+    { "name": "agreement.create", "title": "新建内容", "group": "content" },
+    { "name": "agreement.update", "title": "编辑内容", "group": "content" },
+    { "name": "agreement.delete", "title": "删除内容", "group": "content" }
+  ],
+  "routes": { "admin": "route/admin.php", "api": "route/api.php" }
+}

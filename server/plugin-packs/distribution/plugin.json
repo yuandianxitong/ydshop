@@ -1,0 +1,9 @@
+{
+  "code": "distribution",
+  "name": "分销裂变",
+  "version": "1.0.0",
+  "category": "value_added",
+  "parent_menu": "Member/Distribution",
+  "description": "二级分销、等级佣金、提现对账。付费组件，runtime=shop。菜单挂用户管理。",
+  "author": "ydadmin"
+}

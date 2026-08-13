@@ -1,0 +1,191 @@
+// DIY Editor Config Panel - Shared UI Styles (CRMEB-inspired)
+
+.config-panel {
+  font-size: 13px;
+
+  // Global: make all el-input/el-select/el-input-number use default size (not small)
+  .el-input, .el-select, .el-input-number {
+    --el-component-size: 32px;
+  }
+}
+
+// Section title
+.config-section {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 20px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  &:first-child { margin-top: 0; }
+}
+
+// Row: left label + right control
+.config-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  margin-bottom: 14px;
+
+  &--top {
+    align-items: flex-start;
+    .config-label { padding-top: 10px; }
+  }
+}
+
+.config-label {
+  width: 70px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.4;
+}
+
+.config-control {
+  flex: 1;
+  min-width: 0;
+}
+
+// Slider + InputNumber combo
+.config-slider-combo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  .el-slider { flex: 1; }
+
+  .el-input-number {
+    width: 64px;
+    flex-shrink: 0;
+  }
+}
+
+// Color picker inline with hex value and reset
+.config-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &__value {
+    flex: 1;
+    font-size: 12px;
+    color: #909399;
+    font-family: monospace;
+  }
+
+  &__reset {
+    font-size: 12px;
+    color: var(--el-color-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// List item card
+.config-card {
+  background: #f5f7fa;
+  border-radius: 4px;
+  padding: 14px;
+  margin-bottom: 10px;
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: stretch; // stretch so drag handle centers vertically
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__close {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+    z-index: 1;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    &:hover { background: rgba(0, 0, 0, 0.4); }
+  }
+
+  &__drag {
+    cursor: grab;
+    color: #c0c4cc;
+    font-size: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center; // vertically center the drag handle
+    &:active { cursor: grabbing; }
+  }
+
+  // Upload height = 2 rows of input (32px + 8px gap + 32px = 72px)
+  &__upload {
+    width: 80px;
+    height: 72px;
+    border: 1px dashed #dcdfe6;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #fff;
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+
+    &--square {
+      width: 72px;
+      height: 72px;
+    }
+  }
+
+  // Link field row: input + icon button
+  &__link-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__link-btn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Full-width add button
+.config-add-btn {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+// Hint text
+.config-hint {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 12px;
+}

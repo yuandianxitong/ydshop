@@ -1,0 +1,20 @@
+// layout.scss — Layout dimension variables and modifiers
+
+:root {
+  --sidebar-w: 92px;
+  --sidebar-sub-w: 180px;
+  --header-h: 56px;
+  --tabs-h: 40px;
+  --navbar-height: 56px; // legacy alias
+}
+
+// Hide sidebar labels (toggled by setSidebarLabels in utils/theme.ts)
+body.hide-labels {
+  .nav-label {
+    display: none;
+  }
+
+  .nav-item {
+    padding: 10px 6px;
+  }
+}

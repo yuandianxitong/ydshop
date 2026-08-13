@@ -1,0 +1,54 @@
+// uniapp/src/styles/reset.scss
+// 全局重置 + page 默认样式
+
+@use './tokens';
+
+page {
+  background-color: var(--color-bg-2);
+  color: var(--color-text-1);
+  font-size: var(--font-base);
+  line-height: var(--line-normal);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
+    Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft Yahei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 隐藏滚动条（H5）
+::-webkit-scrollbar {
+  display: none;
+}
+
+// 通用安全区底部（仅安全区，不含内容间距）
+.safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+// 底部操作栏：在已有 padding 上叠加安全区时，用 calc 写在各组件里，例如：
+//   padding: 20rpx 32rpx;
+//   padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+//   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+// 禁止用 inline style 只写 safeAreaBottom 覆盖 paddingBottom，会吃掉内容底边距导致按钮贴底。
+
+// 文本截断辅助类
+.text-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.text-ellipsis-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.text-ellipsis-3 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}

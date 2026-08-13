@@ -1,0 +1,51 @@
+// compact.scss — Reduced spacing when body.compact is set
+
+body.compact {
+  .content,
+  .layout-main,
+  .main-content {
+    padding: 14px;
+  }
+
+  .el-card__body {
+    padding: 14px 16px 16px;
+  }
+
+  .kpi {
+    padding: 18px 20px;
+    min-height: 112px;
+  }
+
+  .kpi-num {
+    font-size: 26px;
+  }
+
+  .page-head {
+    margin-bottom: 12px;
+  }
+
+  .filter-bar {
+    padding: 10px 12px;
+  }
+
+  .el-table th.el-table__cell {
+    padding: 8px 12px;
+  }
+
+  .el-table td.el-table__cell {
+    padding: 10px 12px;
+  }
+
+  .el-dialog__header {
+    padding: 12px 16px;
+  }
+
+  .el-dialog__body {
+    padding: 16px 20px 4px;
+  }
+
+  .el-dialog__footer {
+    padding: 12px 16px;
+  }
+}
+

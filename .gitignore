@@ -1,0 +1,84 @@
+# IDE
+.idea/
+.vscode/
+
+# Claude Code
+.claude/
+CLAUDE.md
+.superpowers/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+admin/dist/
+uniapp/dist/
+pc/dist/
+
+# Documentation (internal, not published via git)
+docs/
+
+# Install lock
+server/config/install.lock
+
+# Runtime
+server/runtime/
+server/public/storage/uploads/
+
+# Paid mall components — distributed via official market, not the public repo
+server/plugins/flash_sale/
+server/plugins/group_buy/
+server/plugins/lottery/
+server/plugins/points_product/
+server/plugins/points_order/
+server/plugins/distribution/
+server/plugins/ai_assistant/
+
+# Paid plugin frontends (present locally when the zip is installed)
+admin/src/views/distribution/
+admin/src/views/ai/
+admin/src/components/ai/
+admin/src/views/marketing/flash-sale/
+admin/src/views/marketing/group-buy/
+admin/src/views/marketing/lottery/
+admin/src/views/marketing/lottery-shipments/
+admin/src/views/marketing/points-product/
+admin/src/views/marketing/points-order/
+pc/pages/user/distribution.vue
+pc/pages/marketing/flash-sale.vue
+pc/pages/marketing/group-buy.vue
+pc/pages/marketing/points-mall.vue
+uniapp/src/modules/distribution/
+uniapp/src/modules/marketing/pages/flash-sale.vue
+uniapp/src/modules/marketing/pages/group-buy.vue
+uniapp/src/modules/marketing/pages/lottery.vue
+uniapp/src/modules/marketing/pages/lottery-detail.vue
+uniapp/src/modules/marketing/pages/lottery-records.vue
+uniapp/src/modules/marketing/pages/lottery-shipment-detail.vue
+uniapp/src/modules/marketing/pages/lottery-shipments.vue
+uniapp/src/modules/marketing/pages/points-mall.vue
+
+# Tests — kept locally, not published
+**/tests/
+**/__tests__/
+**/*.test.ts
+**/*.test.js
+**/*.test.mjs
+**/*.spec.ts
+**/*.spec.js
+**/*Test.php
+
+# Logs
+*.log
+.php-cs-fixer.cache
+.worktrees/

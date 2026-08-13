@@ -1,0 +1,1 @@
+import{v as e,E as a,ax as r,G as s}from"./CmYNeFwQ.js";const p={getCartList:()=>e("/api/cart"),addToCart:t=>a("/api/cart/add",t),updateCartItem:(t,c)=>s(`/api/cart/${t}`,c),removeCartItem:t=>r(`/api/cart/${t}`),toggleSelectItem:t=>a(`/api/cart/${t}/toggle-select`),selectAllItems:t=>a("/api/cart/select-all",t),getSelectedItems:()=>e("/api/cart/selected")};export{p as c};

@@ -1,0 +1,70 @@
+// primitives.scss — Shop Admin raw design tokens
+// Source of truth for all design values. Theme switching modifies --brand-* variables only.
+
+:root {
+  // ─── Brand (default: blue-purple) ───
+  --brand-500: #4f6bff;
+  --brand-600: #3f58e6;
+  --brand-400: #7a8dff;
+  --brand-50: #eef1ff;
+  --brand-100: #dde3ff;
+  --brand-shadow: rgba(79, 107, 255, 0.35);
+
+  // ─── Accent: Purple ───
+  --purple-500: #8b5cf6;
+  --purple-50: #f3edff;
+
+  // ─── Accent: Teal ───
+  --teal-500: #14b8a6;
+  --teal-50: #e6fbf7;
+
+  // ─── Accent: Amber ───
+  --amber-500: #f59e0b;
+  --amber-50: #fff5e0;
+
+  // ─── Accent: Rose ───
+  --rose-500: #f43f5e;
+  --rose-50: #ffecef;
+
+  // ─── Accent: Sky ───
+  --sky-500: #38bdf8;
+  --sky-50: #e6f5ff;
+
+  // ─── Semantic ───
+  --success: #10b981;
+  --danger: #ef4444;
+
+  // ─── Neutral (ink) ───
+  --ink-900: #0f172a;
+  --ink-800: #1e293b;
+  --ink-700: #334155;
+  --ink-600: #475569;
+  --ink-500: #64748b;
+  --ink-400: #94a3b8;
+  --ink-300: #cbd5e1;
+  --ink-200: #e2e8f0;
+  --ink-100: #f1f5f9;
+  --ink-50: #f8fafc;
+
+  // ─── Background ───
+  --page-bg: #f4f6fb;
+  --card-bg: #ffffff;
+
+  // ─── Border Radius ───
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+
+  // ─── Shadows ───
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 6px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.08);
+
+  // ─── Typography ───
+  --font-sans: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", system-ui,
+    -apple-system, Segoe UI, Arial, sans-serif;
+  --font-num: "Helvetica Neue", "SF Pro Display", Arial, sans-serif;
+}

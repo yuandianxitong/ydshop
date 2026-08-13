@@ -1,0 +1,161 @@
+// uniapp/src/styles/tokens.scss
+//
+// 设计 token 体系（v2.0.0）
+// 三层结构：Brand → Semantic → Scale
+//
+// 使用约定：
+//   - 组件 SCSS 内统一用 var(--*) 引用 CSS var
+//   - SCSS 同名变量仅作编译期 fallback / nvue 兼容
+//   - Brand 4 色由 src/store/app.store.ts 在运行时从后台注入
+//   - Semantic 与 Scale 编译期固定
+
+// ==========================================================================
+// 1. Brand（运行时由后台注入；下方为默认值兜底）
+// ==========================================================================
+$color-primary: #2979ff !default;
+$color-auxiliary: #ff9900 !default;
+$color-text: #18181b !default;
+$color-bg: #f5f5f5 !default;
+
+// ==========================================================================
+// 2. Semantic
+// ==========================================================================
+// 派生自 Brand 的语义角色
+$color-price: $color-auxiliary !default;
+$color-link: $color-primary !default;
+
+// 固定语义色（不接后台）
+$color-success: #10b981;
+$color-warning: #f59e0b;
+$color-danger: #ef4444;
+$color-info: #3b82f6;
+
+// 文字 3 级层次
+$color-text-1: #18181b; // 主文字
+$color-text-2: #71717a; // 副文字
+$color-text-3: #a1a1aa; // 辅助文字 / placeholder
+
+// 背景 3 级层次
+$color-bg-1: #ffffff; // 卡片底
+$color-bg-2: #fafafa; // 页面底
+$color-bg-3: #f4f4f5; // 区块底 / 灰条
+
+// 边框 2 级
+$color-border-1: #e4e4e7;
+$color-border-2: #f4f4f5;
+
+// ==========================================================================
+// 3. Scale
+// ==========================================================================
+// 圆角
+$radius-sm: 8rpx;
+$radius-md: 16rpx;
+$radius-lg: 24rpx;
+$radius-xl: 32rpx;
+$radius-2xl: 48rpx;
+
+// 间距（rpx）
+$space-1: 8rpx;
+$space-2: 16rpx;
+$space-3: 24rpx;
+$space-4: 32rpx;
+$space-5: 40rpx;
+$space-6: 48rpx;
+$space-7: 64rpx;
+$space-8: 96rpx;
+
+// 字号（rpx）
+$font-xs: 20rpx;
+$font-sm: 24rpx;
+$font-base: 28rpx;
+$font-md: 32rpx;
+$font-lg: 36rpx;
+$font-xl: 40rpx;
+$font-2xl: 48rpx;
+
+// 行高
+$line-tight: 1.1;
+$line-snug: 1.25;
+$line-normal: 1.5;
+$line-relaxed: 1.75;
+
+// 阴影
+$shadow-sm: 0 2rpx 4rpx rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 12rpx 36rpx rgba(0, 0, 0, 0.12);
+
+// 动效时长
+$duration-fast: 150ms;
+$duration-base: 250ms;
+$duration-slow: 400ms;
+
+// ==========================================================================
+// 4. CSS var 默认值（H5 / 小程序 / App-vue 三端可用）
+// ==========================================================================
+// 注：page 选择器在小程序 / App-vue 是合法的根容器
+//     :root 用于 H5
+:root,
+page {
+  // Brand
+  --color-primary: #{$color-primary};
+  --color-auxiliary: #{$color-auxiliary};
+  --color-text: #{$color-text};
+  --color-bg: #{$color-bg};
+
+  // Semantic
+  --color-price: var(--color-auxiliary);
+  --color-link: var(--color-primary);
+
+  --color-success: #{$color-success};
+  --color-warning: #{$color-warning};
+  --color-danger: #{$color-danger};
+  --color-info: #{$color-info};
+
+  --color-text-1: #{$color-text-1};
+  --color-text-2: #{$color-text-2};
+  --color-text-3: #{$color-text-3};
+
+  --color-bg-1: #{$color-bg-1};
+  --color-bg-2: #{$color-bg-2};
+  --color-bg-3: #{$color-bg-3};
+
+  --color-border-1: #{$color-border-1};
+  --color-border-2: #{$color-border-2};
+
+  // Scale
+  --radius-sm: #{$radius-sm};
+  --radius-md: #{$radius-md};
+  --radius-lg: #{$radius-lg};
+  --radius-xl: #{$radius-xl};
+  --radius-2xl: #{$radius-2xl};
+
+  --space-1: #{$space-1};
+  --space-2: #{$space-2};
+  --space-3: #{$space-3};
+  --space-4: #{$space-4};
+  --space-5: #{$space-5};
+  --space-6: #{$space-6};
+  --space-7: #{$space-7};
+  --space-8: #{$space-8};
+
+  --font-xs: #{$font-xs};
+  --font-sm: #{$font-sm};
+  --font-base: #{$font-base};
+  --font-md: #{$font-md};
+  --font-lg: #{$font-lg};
+  --font-xl: #{$font-xl};
+  --font-2xl: #{$font-2xl};
+
+  --line-tight: #{$line-tight};
+  --line-snug: #{$line-snug};
+  --line-normal: #{$line-normal};
+  --line-relaxed: #{$line-relaxed};
+
+  --shadow-sm: #{$shadow-sm};
+  --shadow-md: #{$shadow-md};
+  --shadow-lg: #{$shadow-lg};
+
+  --duration-fast: #{$duration-fast};
+  --duration-base: #{$duration-base};
+  --duration-slow: #{$duration-slow};
+}

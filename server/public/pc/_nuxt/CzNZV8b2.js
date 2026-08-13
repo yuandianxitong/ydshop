@@ -1,0 +1,1 @@
+import{v as e}from"./CmYNeFwQ.js";const g={getGoodsList:o=>e("/api/goods/list",o),getGoodsDetail:o=>e(`/api/goods/${o}`),getCategoryTree:()=>e("/api/category/tree"),getGoodsReviews:(o,t)=>e(`/api/order-review/spu/${o}`,t)};export{g};

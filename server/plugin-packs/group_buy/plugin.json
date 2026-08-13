@@ -1,0 +1,9 @@
+{
+  "code": "group_buy",
+  "name": "拼团活动",
+  "version": "1.0.0",
+  "category": "value_added",
+  "parent_menu": "Marketing",
+  "description": "团长发起拼团。付费组件，runtime=shop。",
+  "author": "ydadmin"
+}

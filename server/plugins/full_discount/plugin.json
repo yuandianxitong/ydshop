@@ -1,0 +1,30 @@
+{
+  "code": "full_discount",
+  "name": "满减活动",
+  "version": "1.0.0",
+  "description": "按订单总额阶梯减免，支持购物车与单品两种触发模式",
+  "author": "ydadmin",
+  "category": "core",
+  "parent_menu": "Marketing",
+  "palette": ["#10b981", "#059669"],
+  "requires": { "php": ">=8.0", "framework": ">=1.0.0", "plugins": [] },
+  "menus": [
+    {
+      "name": "MarketingFullDiscount",
+      "title": "满减活动",
+      "path": "/marketing/full-discount",
+      "component": "/marketing/full-discount/index",
+      "icon": "i-lucide:percent",
+      "permission": "full_discount.list",
+      "sort": 2
+    }
+  ],
+  "permissions": [
+    { "name": "full_discount.list",   "title": "满减列表", "group": "marketing" },
+    { "name": "full_discount.create", "title": "新建满减", "group": "marketing" },
+    { "name": "full_discount.update", "title": "编辑满减", "group": "marketing" },
+    { "name": "full_discount.delete", "title": "删除满减", "group": "marketing" }
+  ],
+  "routes": { "admin": "route/admin.php", "api": "route/api.php" },
+  "hooks": ["FullDiscountHook"]
+}

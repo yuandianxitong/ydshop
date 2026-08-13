@@ -1,0 +1,85 @@
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: yd-admin-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ../server/public:/var/www/html/public
+      - ../server/public/storage:/var/www/html/public/storage
+      - ../server/public/uploads:/var/www/html/public/uploads
+    depends_on:
+      - php
+    networks:
+      - yd-admin-network
+    restart: unless-stopped
+
+  php:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: yd-admin-php
+    volumes:
+      - ../server:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - yd-admin-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: yd-admin-mysql
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-ydadmin123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-yd_admin}
+      MYSQL_USER: ${MYSQL_USER:-ydadmin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ydadmin123}
+      TZ: Asia/Shanghai
+    volumes:
+      - yd-admin-mysql-data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yd-admin-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: yd-admin-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - yd-admin-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yd-admin-network
+    restart: unless-stopped
+
+volumes:
+  yd-admin-mysql-data:
+  yd-admin-redis-data:
+
+networks:
+  yd-admin-network:
+    driver: bridge

@@ -1,0 +1,8 @@
+@import './variables.scss';
+
+// 注：page 默认样式与 .safe-area-bottom 已迁移到 reset.scss（v2.0.0）
+// common.scss 仅保留 .container 这类历史业务工具类，避免破坏存量页面
+
+.container {
+  padding: $page-padding;
+}

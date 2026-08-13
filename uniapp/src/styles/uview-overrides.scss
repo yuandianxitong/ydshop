@@ -1,0 +1,129 @@
+// uniapp/src/styles/uview-overrides.scss
+//
+// 全局覆盖 uview-plus 默认样式，让其跟随 v2.0.0 token 体系
+// 引入位置：App.vue <style lang="scss">
+
+@use './tokens';
+
+// ==========================================================================
+// 1. u-button
+// ==========================================================================
+.u-button {
+  border-radius: var(--radius-md) !important;
+  font-size: var(--font-base) !important;
+
+  &--primary {
+    background: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    color: #ffffff !important;
+  }
+
+  &--info {
+    background: var(--color-bg-3) !important;
+    color: var(--color-text-1) !important;
+    border-color: var(--color-border-1) !important;
+  }
+
+  &--success { background: var(--color-success) !important; border-color: var(--color-success) !important; }
+  &--warning { background: var(--color-warning) !important; border-color: var(--color-warning) !important; }
+  &--error   { background: var(--color-danger) !important; border-color: var(--color-danger) !important; }
+}
+
+// ==========================================================================
+// 2. u-popup
+// ==========================================================================
+.u-popup__content {
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--color-bg-1) !important;
+}
+
+// ==========================================================================
+// 3. u-input
+// ==========================================================================
+.u-input {
+  border-radius: var(--radius-md) !important;
+  background: var(--color-bg-1) !important;
+  border-color: var(--color-border-1) !important;
+
+  &--focus { border-color: var(--color-primary) !important; }
+}
+
+// ==========================================================================
+// 4. u-tabs
+// ==========================================================================
+.u-tabs__wrapper__nav__item-line {
+  background: var(--color-primary) !important;
+}
+
+.u-tabs__wrapper__nav__item--active .u-tabs__wrapper__nav__item-text {
+  color: var(--color-primary) !important;
+}
+
+// ==========================================================================
+// 5. u-image（圆角统一）
+// ==========================================================================
+.u-image {
+  border-radius: var(--radius-sm);
+}
+
+// ==========================================================================
+// 6. u-icon
+// ==========================================================================
+.u-icon { color: var(--color-text-1); }
+
+// ==========================================================================
+// 7. u-number-box
+// ==========================================================================
+.u-number-box__minus, .u-number-box__plus {
+  background: var(--color-bg-3) !important;
+  color: var(--color-text-1) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+// ==========================================================================
+// 8. u-radio
+// ==========================================================================
+.u-radio__icon-wrap--checked {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+// ==========================================================================
+// 9. u-rate
+// ==========================================================================
+.u-rate__content__item__icon-wrap__icon--active {
+  color: var(--color-warning) !important;
+}
+
+// ==========================================================================
+// 10. u-swipe-action
+// ==========================================================================
+.u-swipe-action-item__right .u-button { border-radius: 0 !important; }
+
+// ==========================================================================
+// 11. u-tag
+// ==========================================================================
+.u-tag {
+  border-radius: var(--radius-sm) !important;
+  font-size: var(--font-xs) !important;
+
+  &--primary { background: var(--color-primary) !important; }
+  &--auxiliary { background: var(--color-auxiliary) !important; }
+}
+
+// ==========================================================================
+// 12. u-cell
+// ==========================================================================
+.u-cell {
+  background: var(--color-bg-1) !important;
+}
+.u-cell__title-text { color: var(--color-text-1) !important; font-size: var(--font-base) !important; }
+.u-cell__value { color: var(--color-text-2) !important; }
+
+// ==========================================================================
+// 13. u-action-sheet
+// ==========================================================================
+.u-action-sheet__item-wrap__item__name { color: var(--color-text-1) !important; }
+.u-action-sheet__item-wrap__item--cancel .u-action-sheet__item-wrap__item__name {
+  color: var(--color-text-2) !important;
+}

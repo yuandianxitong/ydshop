@@ -1,0 +1,9 @@
+{
+  "code": "ai_assistant",
+  "name": "AI 商品助手",
+  "version": "1.0.0",
+  "category": "value_added",
+  "parent_menu": "Ai",
+  "description": "商品标题/卖点/主图/详情 AI 生成。付费组件，runtime=shop。",
+  "author": "ydadmin"
+}
