@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="https://erp.dev007.cn/oss/logo.png" alt="元点Shop" width="120">
+  <img src="https://www.dev007.cn/oss/logo.png" alt="元点Shop" width="120">
 </p>
 
-<h1 align="center">元点Shop — 开源通用后台管理系统</h1>
+<h1 align="center">元点Shop — 全渠道单商户商城系统</h1>
 
 <p align="center">
   基于 ThinkPHP 8 + Vue 3 + TypeScript + Element Plus + UniApp 的前后端分离管理系统
 </p>
 
 <p align="center">
-  <a href="https://admin.dev007.cn">在线演示</a> · <a href="http://docs.dev007.cn/admin/">文档中心</a> · <a href="https://github.com/yuandianxitong/ydshop/issues">问题反馈</a>
+  <a href="https://shop.dev007.cn/admin">在线演示</a> · <a href="http://docs.dev007.cn/admin/">文档中心</a> · <a href="https://github.com/yuandianxitong/ydshop/issues">问题反馈</a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## 系统简介
 
-元点Shop 是一款**免费商用**、开箱即用的单商户全渠道商城，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。基于 [Apache-2.0](LICENSE) 协议开源，个人和企业均可免费使用核心能力；再分发时须保留 `LICENSE`、`NOTICE` 与版权声明。「元点Shop」商标不随协议授权。秒杀、拼团、分销等付费组件请在 [官方市场](https://www.dev007.cn/market/apps?runtime=shop) 购买。
+元点Shop 是一款**免费商用**、开箱即用的全渠道单商户商城系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。秒杀、拼团、分销等能力通过官方市场组件扩展。基于 [Apache-2.0](LICENSE) 协议开源，个人和企业均可免费使用核心能力；再分发时须保留 `LICENSE`、`NOTICE` 与版权声明。「元点Shop」商标不随协议授权。秒杀、拼团、分销等付费组件请在 [官方市场](https://www.dev007.cn/market/apps?runtime=shop) 购买。
 
 系统内置完善的 RBAC 权限体系、CRUD 代码生成器和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
@@ -34,9 +34,9 @@
 
 | 端 | 地址 | 账号 |
 |---|---|---|
-| 管理后台 | [https://admin.dev007.cn/admin/](https://admin.dev007.cn/admin/) | admin / admin888 |
-| PC 前台 | [https://admin.dev007.cn/pc/](https://admin.dev007.cn/pc/) | — |
-| 手机端 | [https://admin.dev007.cn/mobile/](https://admin.dev007.cn/mobile/) | — |
+| 管理后台 | [https://shop.dev007.cn/admin](https://shop.dev007.cn/admin) | admin / admin888 |
+| PC 端 | [https://shop.dev007.cn](https://shop.dev007.cn) | — |
+| H5 端 | [https://shop.dev007.cn/mobile/](https://shop.dev007.cn/mobile/) | — |
 
 ## 技术栈
 
@@ -244,7 +244,7 @@ php think make:crud table_name --module=模块名 --model=模型名
 
 ## 链接
 
-- 在线演示: [https://admin.dev007.cn](https://admin.dev007.cn)
+- 在线演示: [https://shop.dev007.cn/admin](https://shop.dev007.cn/admin)
 - 文档中心: [http://docs.dev007.cn/admin/](http://docs.dev007.cn/admin/)
 - GitHub: [https://github.com/yuandianxitong/ydshop](https://github.com/yuandianxitong/ydshop)
 - Gitee: [https://gitee.com/yuandianxitong/ydshop](https://gitee.com/yuandianxitong/ydshop)

@@ -94,7 +94,7 @@ export default {
         quickFill: '快速填写',
         reg: '注 册',
         title: '欢迎使用 元点Shop 管理系统',
-        subtitle: '一个现代、高效、开箱即用的通用后台管理解决方案，助力企业快速搭建专属业务系统',
+        subtitle: '开箱即用的全渠道单商户商城，覆盖商品、订单、会员与多端小程序，助力商家快速搭建自有商城系统',
         welcome: '欢迎登录',
         enterCredentials: '请输入您的账号信息',
         feature1: 'Vue 3 + TypeScript 现代技术栈',

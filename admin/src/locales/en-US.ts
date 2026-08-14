@@ -93,9 +93,9 @@ export default {
         noAccount: "Don't have an account?",
         quickFill: 'Quick Fill',
         reg: 'Register',
-        title: 'Welcome to YuanDian Admin',
+        title: 'Welcome to YuanDian Shop',
         subtitle:
-            'A modern, efficient, and ready-to-use admin solution to rapidly build your business system',
+            'A ready-to-use omnichannel single-merchant mall for products, orders, members, and mini programs',
         welcome: 'Welcome',
         enterCredentials: 'Enter your credentials',
         feature1: 'Vue 3 + TypeScript modern stack',
