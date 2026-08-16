@@ -1,0 +1,132 @@
+<?php
+declare(strict_types=1);
+
+namespace core\plugin;
+
+use ZipArchive;
+
+/**
+ * Pack plugins/<code>/ into runtime/plugin-packages/<code>-<version>.zip.
+ * Zip root contains plugin.json so PluginInstaller::extract can install it.
+ */
+class PluginPacker
+{
+    private const SKIP_NAMES = ['.DS_Store', '.git', '.gitignore', 'node_modules', 'tests', '__tests__'];
+
+    public static function packagesPath(): string
+    {
+        return rtrim(runtime_path(), '/\\') . DIRECTORY_SEPARATOR . 'plugin-packages' . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * @return string Absolute path of the written zip
+     */
+    public static function pack(string $code, ?string $outputDir = null, bool $force = false): string
+    {
+        $code = trim($code);
+        if ($code === '' || !preg_match('/^[a-z][a-z0-9_]*$/', $code)) {
+            throw new PluginException("无效的插件 code：{$code}", PluginException::ERR_MANIFEST_INVALID);
+        }
+
+        $dir = rtrim(PluginManager::pluginsPath() . $code, '/\\');
+        $manifestPath = $dir . DIRECTORY_SEPARATOR . 'plugin.json';
+        if (!is_dir($dir) || !is_file($manifestPath)) {
+            throw new PluginException("插件不存在或缺少 plugin.json：{$dir}", PluginException::ERR_MANIFEST_NOT_FOUND);
+        }
+
+        $manifest = PluginManifest::fromFile($manifestPath);
+        if ($manifest->code !== $code) {
+            throw new PluginException(
+                "目录名 [{$code}] 与 plugin.json 的 code [{$manifest->code}] 不一致",
+                PluginException::ERR_MANIFEST_INVALID
+            );
+        }
+
+        $outDir = $outputDir !== null && $outputDir !== ''
+            ? rtrim($outputDir, '/\\') . DIRECTORY_SEPARATOR
+            : self::packagesPath();
+        if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {
+            throw new PluginException("无法创建打包目录：{$outDir}", PluginException::ERR_DIR_EXISTS);
+        }
+
+        $finalPath = $outDir . $manifest->code . '-' . $manifest->version . '.zip';
+        if (is_file($finalPath) && !$force) {
+            throw new PluginException("目标已存在：{$finalPath}（用 --force 覆盖）", PluginException::ERR_DIR_EXISTS);
+        }
+
+        $tmpZip = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'plugin-pack-' . $code . '-' . uniqid('', true) . '.zip';
+        self::buildZip($dir, $tmpZip);
+
+        if (is_file($finalPath)) {
+            unlink($finalPath);
+        }
+        if (!rename($tmpZip, $finalPath) && !copy($tmpZip, $finalPath)) {
+            @unlink($tmpZip);
+            throw new PluginException("无法写入打包文件：{$finalPath}", PluginException::ERR_ZIP_INVALID);
+        }
+        @unlink($tmpZip);
+
+        return $finalPath;
+    }
+
+    private static function buildZip(string $dir, string $zipPath): void
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new PluginException('无法创建临时 zip', PluginException::ERR_ZIP_INVALID);
+        }
+
+        try {
+            self::addDir($zip, $dir);
+        } catch (\Throwable $e) {
+            $zip->close();
+            @unlink($zipPath);
+            throw $e;
+        }
+        $zip->close();
+
+        if (!self::zipHasRootManifest($zipPath)) {
+            @unlink($zipPath);
+            throw new PluginException('打包结果缺少 plugin.json', PluginException::ERR_ZIP_INVALID);
+        }
+    }
+
+    private static function zipHasRootManifest(string $zipPath): bool
+    {
+        $check = new ZipArchive();
+        if ($check->open($zipPath) !== true) {
+            return false;
+        }
+        $ok = $check->locateName('plugin.json') !== false;
+        $check->close();
+        return $ok;
+    }
+
+    private static function addDir(ZipArchive $zip, string $absDir): void
+    {
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($absDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isLink()) {
+                continue;
+            }
+            $name = $item->getFilename();
+            if (in_array($name, self::SKIP_NAMES, true) || str_ends_with($name, '.log')) {
+                continue;
+            }
+            $rel = str_replace('\\', '/', substr($item->getPathname(), strlen($absDir) + 1));
+            foreach (explode('/', $rel) as $part) {
+                if (in_array($part, self::SKIP_NAMES, true)) {
+                    continue 2;
+                }
+            }
+            if ($item->isDir()) {
+                $zip->addEmptyDir($rel);
+            } elseif ($item->isFile()) {
+                $zip->addFile($item->getPathname(), $rel);
+            }
+        }
+    }
+}

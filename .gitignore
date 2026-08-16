@@ -33,6 +33,9 @@ server/config/install.lock
 
 # Runtime
 server/runtime/
+
+# Legacy plugin pack staging (now runtime/plugin-packages/)
+server/plugin-packs/
 server/public/storage/uploads/
 
 # Paid mall components — distributed via official market, not the public repo

@@ -1,9 +1,0 @@
-{
-  "code": "flash_sale",
-  "name": "秒杀活动",
-  "version": "1.0.0",
-  "category": "value_added",
-  "parent_menu": "Marketing",
-  "description": "限时限量低价销售。付费组件，runtime=shop。",
-  "author": "ydadmin"
-}

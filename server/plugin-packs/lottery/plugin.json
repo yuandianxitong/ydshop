@@ -1,9 +1,0 @@
-{
-  "code": "lottery",
-  "name": "抽奖活动",
-  "version": "1.0.0",
-  "category": "value_added",
-  "parent_menu": "Marketing",
-  "description": "转盘/砸金蛋抽奖。付费组件，runtime=shop。",
-  "author": "ydadmin"
-}

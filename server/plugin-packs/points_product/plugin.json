@@ -1,9 +1,0 @@
-{
-  "code": "points_product",
-  "name": "积分商品",
-  "version": "1.0.0",
-  "category": "value_added",
-  "parent_menu": "Marketing",
-  "description": "积分兑换商品。付费组件，runtime=shop。需与 points_order 一并安装。",
-  "author": "ydadmin"
-}

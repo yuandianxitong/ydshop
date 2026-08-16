@@ -26,4 +26,8 @@
 
 打包约定：zip 根目录含 `plugin.json`，`category` 用 `value_added`。上架时 Site `market_apps.runtime=shop`。
 
-付费组件的 manifest 草稿在 `server/plugin-packs/`。
+本地打包输出到 `server/runtime/plugin-packages/<code>-<version>.zip`（runtime 已忽略，不进公开仓）：
+
+```bash
+cd server && php think plugin:pack flash_sale
+```

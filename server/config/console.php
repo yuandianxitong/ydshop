@@ -14,6 +14,7 @@ $commands = [
     \app\command\PluginInstallCommand::class,
     \app\command\PluginUninstallCommand::class,
     \app\command\PluginUpgradeCommand::class,
+    \app\command\PluginPackCommand::class,
     \app\command\PluginEnrollBundled::class,
     \app\command\UserGroupRefreshCommand::class,
     \app\command\UserTagRefreshCommand::class,

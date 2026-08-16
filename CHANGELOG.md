@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### Changed
+- 插件打包输出改为 `server/runtime/plugin-packages/`（`php think plugin:pack`），移除源码树中的 `server/plugin-packs/`
 - 分销裂变、AI 商品助手从核心抽出为付费插件；三方同城配送与电子面单仍留在 Apache 核心
 - 开源协议由 MIT 调整为 Apache-2.0：新增 `NOTICE` 版权与商标声明；核心免费开源，秒杀/拼团等付费组件不进公开仓
 - 秒杀 / 拼团 / 抽奖 / 积分商品与积分订单不再随仓分发，也不再随全新安装捆绑入册；请从官网市场下载 zip 后在「插件市场」上传安装

@@ -1,9 +1,0 @@
-{
-  "code": "points_order",
-  "name": "兑换订单",
-  "version": "1.0.0",
-  "category": "value_added",
-  "parent_menu": "Marketing",
-  "description": "积分兑换订单。付费组件，runtime=shop。依赖 points_product。",
-  "author": "ydadmin"
-}
