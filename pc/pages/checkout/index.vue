@@ -428,7 +428,7 @@ async function loadItems() {
         spu_id: goods.id,
         name: goods.name,
         cover: sku.image || goods.images?.[0] || goods.cover,
-        sku_name: sku.name,
+        sku_name: sku.spec_text || sku.name || '',
         price: displayPrice,
         quantity: qty,
         // delivery_modes 是 SPU 级字段（不在 SKU 上），不映射会导致 buy-now 流程同城/自提选项不显示

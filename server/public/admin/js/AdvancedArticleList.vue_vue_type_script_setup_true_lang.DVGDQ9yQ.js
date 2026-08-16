@@ -1,1 +1,0 @@
-import{d as s,a as e,c as a,e as i,j as t}from"./index.DCL0RF5R.js";/* empty css              */const o={class:"config-panel"},n=s({__name:"AdvancedArticleList",props:{modelValue:{}},setup:s=>(s,n)=>{const p=t;return e(),a("div",o,[i(p,{description:"无高级设置","image-size":60})])}});export{n as _};

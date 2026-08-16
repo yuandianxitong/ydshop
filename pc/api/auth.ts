@@ -33,7 +33,7 @@ export const authApi = {
     post<LoginResult>('/api/auth/wechat-web-login', data),
 
   getUserInfo: () =>
-    get<UserInfo>('/api/auth/info'),
+    get<UserInfo>('/api/auth/info', undefined, false),
 
   logout: () =>
     post('/api/auth/logout'),

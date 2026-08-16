@@ -10,3 +10,15 @@
     <BackToTop />
   </div>
 </template>
+
+<script setup lang="ts">
+import { getToken } from '~/composables/useRequest'
+import { useUserStore } from '~/store/user'
+
+const userStore = useUserStore()
+onMounted(() => {
+  if (getToken()) {
+    userStore.syncFromStorage()
+  }
+})
+</script>

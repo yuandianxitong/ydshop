@@ -1,1 +1,0 @@
-import{d as e,a as s,c as a,e as o,j as i}from"./index.DCL0RF5R.js";/* empty css              */const n={class:"config-panel"},p=e({__name:"AdvancedImageCube",props:{modelValue:{}},setup:e=>(e,p)=>{const t=i;return s(),a("div",n,[o(t,{description:"无高级设置","image-size":60})])}});export{p as _};

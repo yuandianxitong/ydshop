@@ -138,12 +138,12 @@
                                     <AiTrigger
                                         scene="cover"
                                         :context="buildAiContext"
-                                        @adopt="(urls) => onAdoptImages(urls, 'cover')"
+                                        @adopt="onAdoptCover"
                                     />
                                     <AiTrigger
                                         scene="gallery"
                                         :context="buildAiContext"
-                                        @adopt="(urls) => onAdoptImages(urls, 'gallery')"
+                                        @adopt="onAdoptGallery"
                                     />
                                 </div>
                             </div>
@@ -594,7 +594,7 @@
 
 <script setup lang="ts" name="SpuEditForm">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, defineAsyncComponent, nextTick, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, reactive, ref, type Component } from 'vue'
 
 import { goodsAttributeGroupApi } from '@/api/goods-attribute-group'
 import { goodsBrandApi } from '@/api/goods-brand'
@@ -606,7 +606,9 @@ import { goodsUnitApi } from '@/api/goods-unit'
 import ImageSelect from '@/components/ImageSelect/index.vue'
 import WangEditor from '@/components/WangEditor/index.vue'
 
-const aiTriggerModules = import.meta.glob('../../../../components/ai/AiTrigger.vue')
+const aiTriggerModules = import.meta.glob<{ default: Component }>(
+    '../../../../components/ai/AiTrigger.vue'
+)
 const AiTrigger = defineAsyncComponent(async () => {
     const loader = Object.values(aiTriggerModules)[0]
     if (!loader) {
@@ -783,6 +785,9 @@ const onAdoptImages = (val: string | string[], slot: 'cover' | 'gallery') => {
     }
     form.images = Array.from(new Set(form.images)).slice(0, 9)
 }
+
+const onAdoptCover = (urls: string | string[]) => onAdoptImages(urls, 'cover')
+const onAdoptGallery = (urls: string | string[]) => onAdoptImages(urls, 'gallery')
 
 // ==============================
 // Data loading

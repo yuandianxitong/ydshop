@@ -18,11 +18,29 @@ export const useAppStore = defineStore('app', {
         const res = await commonApi.getConfig()
         if (res.code === 200) {
           this.config = res.data || {}
+          this.applyTheme()
         }
       } catch {
         /* silent: 让 composable 走默认值 */
       }
       this.loaded = true
+    },
+
+    applyTheme() {
+      const primary = this.config?.theme_primary_color
+      if (primary && typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--color-primary', primary)
+      }
+    },
+
+    getImageUrl(url: string): string {
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+        return url
+      }
+      if (url.startsWith('/')) return url
+      const base = String(this.config?.site_url || '').replace(/\/$/, '')
+      return base ? `${base}/${url.replace(/^\//, '')}` : `/${url.replace(/^\//, '')}`
     },
   },
 })

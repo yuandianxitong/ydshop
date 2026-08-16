@@ -38,7 +38,12 @@ class AuthService extends Service
             throw new BusinessException(lang('business.user_account_disabled'));
         }
 
-        if (!password_verify($password, $user->password)) {
+        $hash = (string) ($user->password ?? '');
+        if ($hash === '') {
+            throw new BusinessException(lang('business.user_password_not_set'));
+        }
+
+        if (!password_verify($password, $hash)) {
             throw new BusinessException(lang('business.user_password_error'));
         }
 

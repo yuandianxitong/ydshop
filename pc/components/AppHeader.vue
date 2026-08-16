@@ -2,8 +2,14 @@
   <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
     <div class="mx-auto max-w-1200px px-4 h-[72px] flex items-center gap-8">
       <!-- 左侧 Logo -->
-      <NuxtLink to="/" class="flex items-center gap-2 flex-shrink-0">
-        <span class="text-2xl font-bold text-[var(--color-primary)] tracking-tight">元点Shop</span>
+      <NuxtLink to="/" class="flex items-center gap-2 flex-shrink-0 min-w-0">
+        <img
+          v-if="logoUrl"
+          :src="logoUrl"
+          :alt="siteName"
+          class="h-9 w-auto max-w-40 object-contain"
+        />
+        <span class="text-2xl font-bold text-[var(--color-primary)] tracking-tight truncate">{{ siteName }}</span>
       </NuxtLink>
 
       <!-- 中间留白 + 推开 -->
@@ -38,11 +44,19 @@
 
 <script setup lang="ts">
 import { useUserStore } from '~/store/user'
+import { useAppStore } from '~/store/app'
 import { cartApi } from '~/api/cart'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const appStore = useAppStore()
+
+const siteName = computed(() => String(appStore.config?.site_name || '').trim() || '元点Shop')
+const logoUrl = computed(() => {
+  const logo = appStore.config?.site_logo
+  return logo ? appStore.getImageUrl(String(logo)) : ''
+})
 
 const keyword = ref((route.query.keyword as string) || '')
 const cartCount = ref(0)
@@ -61,6 +75,8 @@ async function fetchCartCount() {
     const res = await cartApi.getCartList()
     if (res.code === 200) {
       cartCount.value = Array.isArray(res.data) ? res.data.length : 0
+    } else {
+      cartCount.value = 0
     }
   } catch {
     /* silent */

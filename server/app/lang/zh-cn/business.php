@@ -79,6 +79,9 @@ return [
     'template_code_exists'      => '模板标识已存在',
     'template_not_found'        => '模板不存在',
     'template_disabled'         => '消息模板 [%s] 不存在或已禁用',
+    'sms_template_id_missing'   => '消息模板 [%s] 已启用短信但未填写短信模板ID',
+    'message_no_channel'        => '消息模板 [%s] 未配置可用发送通道',
+    'sms_channel_not_enabled'   => '该场景未启用短信通道',
     'template_code_required'    => '模板标识不能为空',
 
     // 支付
@@ -105,6 +108,7 @@ return [
     'user_not_found'            => '用户不存在',
     'user_account_disabled'     => '账号已被禁用',
     'user_password_error'       => '密码错误',
+    'user_password_not_set'     => '该账号未设置密码，请使用验证码登录',
     'no_updatable_fields'       => '没有可更新的字段',
     'user_old_password_error'   => '旧密码错误',
 

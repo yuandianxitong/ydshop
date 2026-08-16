@@ -1,1 +1,0 @@
-import r from"./error.PTs1hRCe.js";import{d as e,c as s,e as o,a as t}from"./index.DCL0RF5R.js";const a={class:"error500"},i=e({__name:"500",setup:e=>(e,i)=>(t(),s("div",a,[o(r,{code:"500",title:e.$t("errorPage.serverError")},null,8,["title"])]))});export{i as default};

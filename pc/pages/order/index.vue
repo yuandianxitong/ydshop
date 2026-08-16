@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="mx-auto max-w-1200px px-4 pt-5 pb-12">
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-xl font-bold text-gray-900">我的订单</h2>
       <NuxtLink
@@ -10,74 +10,77 @@
       </NuxtLink>
     </div>
 
-    <!-- Status tabs -->
-    <div class="card mb-4">
-      <div class="flex border-b border-gray-100">
-        <button
-          v-for="tab in tabs"
-          :key="tab.value"
-          class="order-tab"
-          :class="{ 'order-tab--active': activeTab === tab.value }"
-          @click="setTab(tab.value)"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <!-- Order list -->
-      <div class="p-4 min-h-300px">
-        <div v-if="loading" class="space-y-3">
-          <div v-for="i in 3" :key="i" class="h-32 bg-gray-100 rounded animate-pulse" />
-        </div>
-
-        <template v-else-if="orders.length">
-          <OrderCard
-            v-for="order in orders"
-            :key="order.id"
-            :order="order"
-            @action="handleAction"
-          />
-        </template>
-
-        <div v-else class="flex flex-col items-center justify-center py-16 text-gray-400">
-          <span class="i-carbon-receipt text-5xl mb-3 block" />
-          <p class="text-sm">暂无{{ activeTabLabel }}订单</p>
-          <NuxtLink to="/goods" class="mt-3 text-sm text-[var(--color-primary)] hover:underline">
-            去选购商品
-          </NuxtLink>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6 pt-4 border-t border-gray-100">
-          <button
-            class="pagination-btn"
-            :disabled="currentPage <= 1"
-            @click="goPage(currentPage - 1)"
-          >
-            &lsaquo; 上一页
-          </button>
-          <button
-            v-for="p in visiblePages"
-            :key="p"
-            class="pagination-btn"
-            :class="{ 'pagination-btn--active': currentPage === p }"
-            @click="goPage(p)"
-          >
-            {{ p }}
-          </button>
-          <button
-            class="pagination-btn"
-            :disabled="currentPage >= totalPages"
-            @click="goPage(currentPage + 1)"
-          >
-            下一页 &rsaquo;
-          </button>
-          <span class="text-sm text-gray-400 ml-2">{{ currentPage }} / {{ totalPages }} 页</span>
-        </div>
-      </div>
+    <div class="flex border-b border-gray-200 mb-4">
+      <button
+        v-for="tab in tabs"
+        :key="tab.value"
+        class="order-tab"
+        :class="{ 'order-tab--active': activeTab === tab.value }"
+        @click="setTab(tab.value)"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
-    <!-- Cancel modal -->
+    <div v-if="loading" class="bg-white rounded-sm p-4 space-y-3">
+      <div v-for="i in 3" :key="i" class="h-32 bg-gray-100 rounded animate-pulse" />
+    </div>
+
+    <template v-else-if="orders.length">
+      <div class="bg-white rounded-sm overflow-hidden">
+        <div class="order-row order-row--header">
+          <div class="order-cell order-cell--goods">商品信息</div>
+          <div class="order-cell order-cell--price">单价</div>
+          <div class="order-cell order-cell--qty">数量</div>
+          <div class="order-cell order-cell--pay">实付款</div>
+          <div class="order-cell order-cell--status">交易状态</div>
+          <div class="order-cell order-cell--op">操作</div>
+        </div>
+      </div>
+
+      <OrderCard
+        v-for="order in orders"
+        :key="order.id"
+        :order="order"
+        @action="handleAction"
+      />
+
+      <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-6">
+        <button
+          class="pagination-btn"
+          :disabled="currentPage <= 1"
+          @click="goPage(currentPage - 1)"
+        >
+          &lsaquo; 上一页
+        </button>
+        <button
+          v-for="p in visiblePages"
+          :key="p"
+          class="pagination-btn"
+          :class="{ 'pagination-btn--active': currentPage === p }"
+          @click="goPage(p)"
+        >
+          {{ p }}
+        </button>
+        <button
+          class="pagination-btn"
+          :disabled="currentPage >= totalPages"
+          @click="goPage(currentPage + 1)"
+        >
+          下一页 &rsaquo;
+        </button>
+        <span class="text-sm text-gray-400 ml-2">{{ currentPage }} / {{ totalPages }} 页</span>
+      </div>
+    </template>
+
+    <div v-else class="bg-white rounded-sm flex flex-col items-center justify-center py-20 text-gray-400">
+      <span class="i-carbon-receipt text-5xl mb-3 block" />
+      <p class="text-sm">暂无{{ activeTabLabel }}订单</p>
+      <NuxtLink to="/goods" class="mt-3 text-sm text-[var(--color-primary)] hover:underline">
+        去选购商品
+      </NuxtLink>
+    </div>
+
     <div v-if="cancelModalVisible" class="modal-overlay" @click.self="cancelModalVisible = false">
       <div class="modal-box">
         <h3 class="text-base font-semibold text-gray-800 mb-4">取消订单</h3>
@@ -100,7 +103,7 @@
         <div class="flex gap-2 justify-end">
           <button class="btn-outline" @click="cancelModalVisible = false">返回</button>
           <button
-            class="btn-primary-sm"
+            class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="!cancelReason || cancelling"
             @click="confirmCancel"
           >
@@ -117,7 +120,7 @@ import { useMessage } from 'naive-ui'
 import OrderCard from '~/components/OrderCard.vue'
 import { orderApi, type OrderItem, type OrderStatus } from '~/api/order'
 
-definePageMeta({ layout: false, middleware: 'auth' })
+definePageMeta({ middleware: 'auth' })
 
 const message = useMessage()
 const router = useRouter()
@@ -179,7 +182,6 @@ function goPage(page: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// Cancel modal
 const cancelModalVisible = ref(false)
 const cancelReason = ref('')
 const cancelling = ref(false)
@@ -260,30 +262,25 @@ onMounted(() => {
   border-bottom-color: var(--color-primary);
 }
 
-.btn-outline {
-  padding: 6px 16px;
-  font-size: 0.8125rem;
-  border-radius: 2px;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.15s;
+.order-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 100px 72px 110px 100px 132px;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 20px;
 }
-.btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
-
-.btn-primary-sm {
-  padding: 6px 16px;
+.order-row--header {
+  background: #fafafa;
   font-size: 0.8125rem;
-  border-radius: 2px;
-  border: 1px solid var(--color-primary);
-  color: #fff;
-  background: var(--color-primary);
-  cursor: pointer;
-  transition: opacity 0.15s;
+  color: #6b7280;
 }
-.btn-primary-sm:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary-sm:not(:disabled):hover { opacity: 0.85; }
+.order-cell--price,
+.order-cell--qty,
+.order-cell--pay,
+.order-cell--status,
+.order-cell--op {
+  text-align: center;
+}
 
 .pagination-btn {
   padding: 5px 12px;
@@ -300,7 +297,6 @@ onMounted(() => {
 .pagination-btn--active { background: var(--color-primary) !important; border-color: var(--color-primary) !important; color: #fff !important; }
 .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Cancel modal */
 .modal-overlay {
   position: fixed;
   inset: 0;

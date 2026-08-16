@@ -39,73 +39,91 @@ class PluginManager
     /** @var array<string, PluginManifest> code => manifest */
     private static array $plugins = [];
 
+    /** @var array<string, string> code => plugin directory */
+    private static array $pluginDirs = [];
+
     /** @var bool Whether boot() has already been called */
     private static bool $booted = false;
 
     /**
      * Boot all installed plugins. Reads the plugins table to decide which
      * plugins to load; rows with status=disabled are skipped.
-     * Safe to call multiple times — subsequent calls are no-ops.
+     * Safe to call multiple times — plugin discovery/events/hooks run once,
+     * HTTP routes are re-registered per request for the current app.
      */
     public static function boot(): void
     {
-        if (self::$booted) {
-            return;
-        }
-        self::$booted = true;
+        if (!self::$booted) {
+            self::$booted = true;
 
-        $cached = self::readCache();
-        if ($cached !== null) {
-            $codes = array_keys($cached);
-        } else {
-            try {
-                $codes = Plugin::where('status', 'installed')->column('code');
-            } catch (\Throwable) {
-                // Installer phase: plugins table doesn't exist yet.
+            $cached = self::readCache();
+            if ($cached !== null) {
+                $codes = array_keys($cached);
+            } else {
+                try {
+                    $codes = Plugin::where('status', 'installed')->column('code');
+                } catch (\Throwable) {
+                    // Installer phase: plugins table doesn't exist yet.
+                    return;
+                }
+            }
+
+            $pluginsDir = self::pluginsPath();
+            if (!is_dir($pluginsDir)) {
                 return;
             }
-        }
 
-        $pluginsDir = self::pluginsPath();
-        if (!is_dir($pluginsDir)) {
-            return;
-        }
-
-        foreach ($codes as $code) {
-            try {
-                if (!\core\license\LicenseGuard::canUsePlugin((string) $code)) {
+            foreach ($codes as $code) {
+                try {
+                    if (!\core\license\LicenseGuard::canUsePlugin((string) $code)) {
+                        continue;
+                    }
+                } catch (\Throwable) {
+                    // 安装期或授权模块未就绪时不阻断 boot
+                }
+                $dir = $pluginsDir . $code . DIRECTORY_SEPARATOR;
+                if (!is_dir($dir)) {
                     continue;
                 }
-            } catch (\Throwable) {
-                // 安装期或授权模块未就绪时不阻断 boot
+
+                $manifestFile = $dir . 'plugin.json';
+                if (!is_file($manifestFile)) {
+                    continue;
+                }
+
+                try {
+                    $manifest = PluginManifest::fromFile($manifestFile);
+                } catch (PluginException) {
+                    continue;
+                }
+
+                self::$plugins[$code] = $manifest;
+                self::$pluginDirs[$code] = $dir;
+
+                self::registerEvents($code, $dir, $manifest);
+                self::registerHooks($code, $manifest->raw);
+
+                $pluginClass = 'plugins\\' . $code . '\\Plugin';
+                if (class_exists($pluginClass)) {
+                    /** @var PluginInterface $plugin */
+                    $plugin = new $pluginClass();
+                    $plugin->boot();
+                }
             }
-            $dir = $pluginsDir . $code . DIRECTORY_SEPARATOR;
-            if (!is_dir($dir)) {
-                continue;
-            }
+        }
 
-            $manifestFile = $dir . 'plugin.json';
-            if (!is_file($manifestFile)) {
-                continue;
-            }
+        self::registerLoadedPluginRoutes();
+    }
 
-            try {
-                $manifest = PluginManifest::fromFile($manifestFile);
-            } catch (PluginException) {
-                continue;
-            }
-
-            self::$plugins[$code] = $manifest;
-
-            self::registerRoutes($code, $dir, $manifest);
-            self::registerEvents($code, $dir, $manifest);
-            self::registerHooks($code, $manifest->raw);
-
-            $pluginClass = 'plugins\\' . $code . '\\Plugin';
-            if (class_exists($pluginClass)) {
-                /** @var PluginInterface $plugin */
-                $plugin = new $pluginClass();
-                $plugin->boot();
+    /**
+     * 每个请求都按当前 HTTP 应用注册插件路由（ThinkPHP 每请求新建路由表）。
+     */
+    private static function registerLoadedPluginRoutes(): void
+    {
+        foreach (self::$plugins as $code => $manifest) {
+            $dir = self::$pluginDirs[$code] ?? (self::pluginsPath() . $code . DIRECTORY_SEPARATOR);
+            if (is_dir($dir)) {
+                self::registerRoutes($code, $dir, $manifest);
             }
         }
     }
@@ -113,30 +131,83 @@ class PluginManager
     /**
      * Require route files declared in manifest["routes"], with a fallback to the
      * conventional route/admin.php and route/api.php when manifest omits "routes".
+     *
+     * 必须按当前 HTTP 应用拆开加载：admin 与 api 常有同名分组（如 article/list），
+     * 两套都注册进 /api 时，后台 admin_full 会先命中，C 端带用户 token 就会 401。
      */
     private static function registerRoutes(string $code, string $dir, PluginManifest $manifest): void
     {
+        $appName = self::currentHttpApp();
         $routeDir = $dir . 'route' . DIRECTORY_SEPARATOR;
 
         if (!empty($manifest->routes)) {
-            foreach ($manifest->routes as $rel) {
+            foreach ($manifest->routes as $scope => $rel) {
                 if (!is_string($rel) || $rel === '') {
+                    continue;
+                }
+                if (!self::routeScopeMatchesApp(is_string($scope) ? $scope : '', $rel, $appName)) {
                     continue;
                 }
                 $path = $dir . ltrim($rel, '/\\');
                 if (is_file($path)) {
-                    require_once $path;
+                    require $path;
                 }
             }
             return;
         }
 
         foreach (['api.php', 'admin.php'] as $file) {
+            if (!self::routeScopeMatchesApp('', $file, $appName)) {
+                continue;
+            }
             $path = $routeDir . $file;
             if (is_file($path)) {
-                require_once $path;
+                require $path;
             }
         }
+    }
+
+    private static function currentHttpApp(): string
+    {
+        try {
+            $name = (string) app()->http->getName();
+            if ($name !== '') {
+                return $name;
+            }
+        } catch (\Throwable) {
+        }
+
+        $uri = (string) ($_SERVER['PATH_INFO'] ?? $_SERVER['REQUEST_URI'] ?? '');
+        if (str_contains($uri, '/adminapi')) {
+            return 'adminapi';
+        }
+        if (preg_match('#(?:^|/)api(?:/|$)#', $uri) === 1) {
+            return 'api';
+        }
+        return '';
+    }
+
+    private static function routeScopeMatchesApp(string $scope, string $path, string $appName): bool
+    {
+        $scope = strtolower($scope);
+        $file = strtolower(basename(str_replace('\\', '/', $path)));
+
+        $target = '';
+        if (in_array($scope, ['admin', 'adminapi'], true) || $file === 'admin.php') {
+            $target = 'adminapi';
+        } elseif ($scope === 'api' || $file === 'api.php') {
+            $target = 'api';
+        }
+
+        // 无法识别的 scope 不装任何应用，避免后台路由误进 /api
+        if ($target === '') {
+            return false;
+        }
+        // 应用名未知时只装 C 端路由，宁可不注册后台
+        if ($appName === '') {
+            return $target === 'api';
+        }
+        return $target === $appName;
     }
 
     /**

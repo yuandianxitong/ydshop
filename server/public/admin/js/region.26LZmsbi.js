@@ -1,1 +1,0 @@
-import{S as e}from"./index.DCL0RF5R.js";const i={getList:i=>e.get("/adminapi/region/list",{params:i}),getTree:()=>e.get("/adminapi/region/tree"),getDetail:i=>e.get(`/adminapi/region/detail/${i}`),create:i=>e.post("/adminapi/region",i),update:(i,a)=>e.put(`/adminapi/region/${i}`,a),delete:i=>e.delete(`/adminapi/region/${i}`)};export{i as r};

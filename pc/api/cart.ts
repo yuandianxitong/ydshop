@@ -28,7 +28,7 @@ export interface CartItem {
 
 export const cartApi = {
   getCartList: () =>
-    get<CartItem[]>('/api/cart'),
+    get<CartItem[]>('/api/cart', undefined, false),
 
   addToCart: (data: { sku_id: number; quantity: number }) =>
     post('/api/cart/add', data),

@@ -1,22 +1,128 @@
 import { ofetch } from 'ofetch'
 
 const TOKEN_KEY = 'pc_token'
+const USER_KEY = 'pc_user'
+
+/** 登录刚写入时优先走内存，避免只读 localStorage / import.meta.server 漏带 Authorization */
+let memoryToken = ''
 
 export function getToken(): string | null {
+  if (memoryToken) return memoryToken
   if (import.meta.server) return null
   return localStorage.getItem(TOKEN_KEY)
 }
 
 export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token)
+  memoryToken = normalizeJwt(token) || token.trim()
+  if (import.meta.client) {
+    localStorage.setItem(TOKEN_KEY, memoryToken)
+  }
 }
 
 export function removeToken() {
-  localStorage.removeItem(TOKEN_KEY)
+  memoryToken = ''
+  if (import.meta.client) {
+    localStorage.removeItem(TOKEN_KEY)
+  }
 }
 
-// 公开页面：游客可自由浏览，401 时只清 token 不跳转登录页
-// 注意：匹配的是"应用内路径"（已剥离 baseURL），保持与 vue-router 的 to.fullPath 一致
+export function getCachedUser<T = Record<string, unknown>>(): T | null {
+  if (import.meta.server) return null
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? JSON.parse(raw) as T : null
+  } catch {
+    return null
+  }
+}
+
+export function setCachedUser(user: unknown) {
+  if (!import.meta.client || user == null) return
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
+export function removeCachedUser() {
+  if (import.meta.client) {
+    localStorage.removeItem(USER_KEY)
+  }
+}
+
+function resolveToken(): string {
+  return normalizeJwt(getToken() || '')
+}
+
+/** 去掉 Bearer 前缀、重复拼接，只保留三段式 JWT */
+function normalizeJwt(raw: string): string {
+  let token = raw.trim()
+  if (!token) return ''
+  while (/^bearer\s+/i.test(token)) {
+    token = token.replace(/^bearer\s+/i, '').trim()
+  }
+  if (token.includes(',')) {
+    token = token.split(',')[0].trim()
+    while (/^bearer\s+/i.test(token)) {
+      token = token.replace(/^bearer\s+/i, '').trim()
+    }
+  }
+  return token.split('.').length === 3 ? token : ''
+}
+
+function readHeader(headers: HeadersInit | undefined, name: string): string {
+  if (!headers) return ''
+  const target = name.toLowerCase()
+  if (headers instanceof Headers) {
+    return headers.get(name) || ''
+  }
+  if (Array.isArray(headers)) {
+    const hit = headers.find(([key]) => key.toLowerCase() === target)
+    return hit ? String(hit[1]) : ''
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === target && value !== undefined) {
+      return String(value)
+    }
+  }
+  return ''
+}
+
+function hasBearer(headers?: HeadersInit): boolean {
+  return /^bearer\s+\S+/i.test(readHeader(headers, 'Authorization'))
+}
+
+/**
+ * 用 Headers.set 写请求头，避免 Authorization / authorization 同时存在时
+ * 被合成 "Bearer jwt, Bearer jwt"（JWT 会报 Wrong number of segments）。
+ */
+function applyRequestHeaders(base?: HeadersInit): Headers {
+  const headers = new Headers()
+  if (base instanceof Headers) {
+    base.forEach((value, key) => {
+      if (key.toLowerCase() !== 'authorization') {
+        headers.set(key, value)
+      }
+    })
+  } else if (Array.isArray(base)) {
+    for (const [key, value] of base) {
+      if (key.toLowerCase() !== 'authorization') {
+        headers.set(key, value)
+      }
+    }
+  } else if (base) {
+    for (const [key, value] of Object.entries(base)) {
+      if (value !== undefined && key.toLowerCase() !== 'authorization') {
+        headers.set(key, String(value))
+      }
+    }
+  }
+  const token = resolveToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  headers.set('X-Client-Type', 'pc')
+  return headers
+}
+
+// 公开页面：游客可自由浏览，401 绝不能清掉刚写入的登录态
 const PUBLIC_PATH_PATTERNS: RegExp[] = [
   /^\/$/,
   /^\/login(\/|$)/,
@@ -28,18 +134,18 @@ const PUBLIC_PATH_PATTERNS: RegExp[] = [
   /^\/announcement(\/|$)/,
   /^\/help(\/|$)/,
   /^\/marketing(\/|$)/,
+  /^\/diy(\/|$)/,
 ]
 
 function isPublicPath(appPath: string): boolean {
   return PUBLIC_PATH_PATTERNS.some((p) => p.test(appPath))
 }
 
-// 与 nuxt.config.ts 的 app.baseURL 保持一致（结尾不含 /）
 const BASE_PATH = '/pc'
 
 function stripBase(pathname: string): string {
-  if (pathname === BASE_PATH) return '/'
-  if (pathname.startsWith(BASE_PATH + '/')) return pathname.slice(BASE_PATH.length) || '/'
+  if (pathname === BASE_PATH || pathname === `${BASE_PATH}/`) return '/'
+  if (pathname.startsWith(`${BASE_PATH}/`)) return pathname.slice(BASE_PATH.length) || '/'
   return pathname
 }
 
@@ -49,32 +155,38 @@ function redirectToLogin() {
   const { search } = window.location
   if (appPath === '/login') return
   if (isPublicPath(appPath)) return
-  // redirect 用应用内路径，登录后 router.push 会自动补回 baseURL
   navigateTo(`/login?redirect=${encodeURIComponent(appPath + search)}`)
+}
+
+function shouldClearSession(headers?: HeadersInit): boolean {
+  if (!import.meta.client) return false
+  if (!hasBearer(headers)) return false
+  return !isPublicPath(stripBase(window.location.pathname))
+}
+
+function clearSession() {
+  removeToken()
+  removeCachedUser()
+  if (!import.meta.client) return
+  import('~/store/user').then(({ useUserStore }) => {
+    useUserStore().clearSession()
+  }).catch(() => { /* pinia 尚未就绪时忽略 */ })
 }
 
 export const request = ofetch.create({
   onRequest({ options }) {
-    const token = getToken()
-    const headers = options.headers instanceof Headers
-      ? options.headers
-      : new Headers(options.headers as HeadersInit | undefined)
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`)
-    }
-    headers.set('X-Client-Type', 'pc')
-    options.headers = headers
+    options.headers = applyRequestHeaders(options.headers as HeadersInit | undefined)
   },
 
-  onResponseError({ response }) {
-    if (response.status === 401) {
-      removeToken()
+  onResponseError({ response, options }) {
+    const skipAuthClear = Boolean((options as { _skipAuthClear?: boolean })._skipAuthClear)
+    if (response.status === 401 && !skipAuthClear && shouldClearSession(options.headers as HeadersInit | undefined)) {
+      clearSession()
       redirectToLogin()
     }
   },
 })
 
-// Typed helpers matching backend response format: { code, message, data, timestamp }
 export interface ApiResponse<T = any> {
   code: number
   message: string
@@ -84,8 +196,8 @@ export interface ApiResponse<T = any> {
 export interface Pagination {
   current_page: number
   per_page: number
-  total: number
   last_page: number
+  total: number
 }
 
 export interface PageResult<T> {
@@ -110,19 +222,21 @@ function normalizePaginationParams(params?: Record<string, any>): Record<string,
 }
 
 /**
- * 统一处理业务错误码：非 200 时自动弹出错误提示
- * 传入 showError: false 可跳过自动提示（调用方自行处理）
+ * 后端鉴权失败是 HTTP 200 + body.code=401，不会走 onResponseError。
+ * 只有「本次请求确实带了 Bearer」且当前不在公开页时才清会话。
  */
-async function handleResponse<T>(promise: Promise<ApiResponse<T>>, showError = true): Promise<ApiResponse<T>> {
+async function handleResponse<T>(
+  promise: Promise<ApiResponse<T>>,
+  showError = true,
+  headers?: HeadersInit,
+): Promise<ApiResponse<T>> {
   const res = await promise
-  if (res.code === 401 && import.meta.client) {
-    // 业务码 401：token 失效，清 token；公开页静默，受保护页跳登录并带 redirect
-    removeToken()
+  if (res.code === 401 && shouldClearSession(headers)) {
+    clearSession()
     redirectToLogin()
     return res
   }
   if (res.code !== 200 && showError && import.meta.client) {
-    // 使用 window.alert 的轻量替代，避免 useMessage 需要 setup 上下文
     import('naive-ui').then(({ createDiscreteApi }) => {
       const { message } = createDiscreteApi(['message'])
       message.error(res.message || '请求失败')
@@ -133,18 +247,30 @@ async function handleResponse<T>(promise: Promise<ApiResponse<T>>, showError = t
   return res
 }
 
+function call<T>(url: string, options: Record<string, unknown>, showError = true) {
+  const headers = applyRequestHeaders()
+  return handleResponse<T>(
+    request<ApiResponse<T>>(url, {
+      ...options,
+      ...(!showError ? { _skipAuthClear: true } : {}),
+    }),
+    showError,
+    headers,
+  )
+}
+
 export function get<T = any>(url: string, params?: Record<string, any>, showError = true): Promise<ApiResponse<T>> {
-  return handleResponse(request<ApiResponse<T>>(url, { method: 'GET', params: normalizePaginationParams(params) }), showError)
+  return call<T>(url, { method: 'GET', params: normalizePaginationParams(params) }, showError)
 }
 
 export function post<T = any>(url: string, body?: Record<string, any>, showError = true): Promise<ApiResponse<T>> {
-  return handleResponse(request<ApiResponse<T>>(url, { method: 'POST', body }), showError)
+  return call<T>(url, { method: 'POST', body }, showError)
 }
 
 export function put<T = any>(url: string, body?: Record<string, any>, showError = true): Promise<ApiResponse<T>> {
-  return handleResponse(request<ApiResponse<T>>(url, { method: 'PUT', body }), showError)
+  return call<T>(url, { method: 'PUT', body }, showError)
 }
 
 export function del<T = any>(url: string, body?: Record<string, any>, showError = true): Promise<ApiResponse<T>> {
-  return handleResponse(request<ApiResponse<T>>(url, { method: 'DELETE', body }), showError)
+  return call<T>(url, { method: 'DELETE', body }, showError)
 }

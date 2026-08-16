@@ -1,1 +1,0 @@
-import{S as a}from"./index.DCL0RF5R.js";const t={getList:t=>a.get("/adminapi/ads/list",{params:t}),getDetail:t=>a.get(`/adminapi/ads/${t}`),create:t=>a.post("/adminapi/ads",t),update:(t,s)=>a.put(`/adminapi/ads/${t}`,s),delete:t=>a.delete(`/adminapi/ads/${t}`),batchStatus:(t,s)=>a.post("/adminapi/ads/batch-status",{ids:t,status:s})};export{t as a};

@@ -9,6 +9,10 @@
 - `plugin:pack` 将付费组件对应的 admin / PC / uniapp 页面打入 zip 的 `_frontend/`，安装时自动部署；支持 `--all`
 
 ### Changed
+- PC 端头部 Logo / 网站名称改读系统配置 `site_logo`、`site_name`
+- PC 端商品详情数量改为购物车同款「减 / 输入 / 加」
+- PC 端我的订单恢复默认头尾，列表改为购物车式表格并展示全部商品
+- PC 端意见反馈、账号安全去掉装饰化布局，对齐个人资料卡片表单风格
 - 兑换订单并入积分商品插件（`points_product` 1.1.0），不再单独分发 `points_order`；后台仍保留商品与订单两个菜单
 - 插件打包输出改为 `server/runtime/plugin-packages/`（`php think plugin:pack`），移除源码树中的 `server/plugin-packs/`
 - 分销裂变、AI 商品助手从核心抽出为付费插件；三方同城配送与电子面单仍留在 Apache 核心
@@ -17,7 +21,17 @@
 - 公开仓库改为 `yuandianxitong/ydshop`（GitHub / Gitee）
 
 ### Fixed
+- PC 端确认订单添加地址弹窗主按钮被 Tailwind reset 冲成白底；改为主题色，并补齐 Naive 主按钮背景
+- PC 端商品详情 Tab 选中色为 Naive 默认绿，与主题色不一致；改为跟随 `--color-primary`，并给 NConfigProvider 设置 primaryColor
+- PC 端商品详情无法选择规格：公开详情返回 `specNames` / `spec_value_ids`，页面却读不存在的 `sku.attributes`；改为按 uniapp 同款字段组规格并回写选中 SKU。立即购买补上 `goods_id`，结算页规格名用 `spec_text`
 - 插件市场本地上传 zip：`/tmp` 与站点不在同一文件系统时 `rename` 目录失败返回 500；改为跨盘复制并解压到 `runtime/`
+- PC 端密码登录：未设置密码的账号（微信/验证码注册）调用 `password_verify(null)` 返回 500；改为提示使用验证码登录
+- 短信验证码：消息模板未填短信模板 ID 时静默跳过仍返回「验证码已发送」；改为明确报错，不再假装已发送
+- PC 端登录后刷新首页变回未登录：客户端启动时从 `pc_token` 恢复会话，并回写用户信息
+- PC 端登录/注册成功后首页仍显示未登录：鉴权失败是 HTTP 200 + body.code=401，公开页请求会把刚写入的会话清掉；Pinia 空 payload 也会冲掉 token。改为 skipHydrate 持久化 token/userInfo，公开页 401 不再登出
+- PC 端登录后 `/api/cart` 报 Token 验证失败 Wrong number of segments：请求头同时带了 `Authorization` 与 `authorization`，被合成 `Bearer jwt, Bearer jwt`；改为 Headers.set 只写一次，后端也兼容重复头
+- PC 端登录后公开接口 `/api/article/list` 返回 Token验证失败：插件把后台 `article/list`（admin_full）和 C 端同名路由都注册进 `/api`，用户 token 被当成后台 token 校验；改为按当前应用只加载对应路由
+- 插件 C 端路由核对：coupon / sign / 协议 / 满减无同路径被后台鉴权抢走；应用名未知或 scope 无法识别时不再把 admin 路由装进 `/api`
 
 ### Added
 - 插件市场对接官网 `runtime=shop` 组件目录；付费组件启用受权益软门控

@@ -105,11 +105,21 @@ class TokenManager
      */
     public function getTokenFromHeader(): ?string
     {
-        $header = request()->header('Authorization', '');
-        if (strpos($header, 'Bearer ') === 0) {
-            return substr($header, 7);
+        $header = (string) request()->header('Authorization', '');
+        if ($header === '') {
+            $header = (string) (request()->server('HTTP_AUTHORIZATION')
+                ?: request()->server('REDIRECT_HTTP_AUTHORIZATION')
+                ?: '');
         }
-        return null;
+        if ($header === '') {
+            return null;
+        }
+        // 前端/代理把 Authorization 写了两次时会变成 "Bearer jwt, Bearer jwt"
+        $token = trim(explode(',', $header, 2)[0]);
+        if (stripos($token, 'Bearer ') === 0) {
+            $token = trim(substr($token, 7));
+        }
+        return $token !== '' ? $token : null;
     }
 
     /**

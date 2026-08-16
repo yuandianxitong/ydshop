@@ -1,1 +1,0 @@
-import{S as e}from"./index.DCL0RF5R.js";const t={getList:t=>e.get("/adminapi/diy/template",{params:t}),getDetail:t=>e.get(`/adminapi/diy/template/${t}`),create:t=>e.post("/adminapi/diy/template",t),update:(t,a)=>e.put(`/adminapi/diy/template/${t}`,a),delete:t=>e.delete(`/adminapi/diy/template/${t}`)};export{t as d};

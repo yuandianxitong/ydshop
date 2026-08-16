@@ -215,22 +215,22 @@ php think make:crud table_name --module=模块名 --model=模型名
 
 ### 管理后台
 
-| | |
-|---|---|
-| ![登录页](https://docs.dev007.cn/admin/demo/admin01.png) | ![控制台](https://docs.dev007.cn/admin/demo/admin02.png) |
-| ![系统管理](https://docs.dev007.cn/admin/demo/admin03.png) | ![更多功能](https://docs.dev007.cn/admin/demo/admin04.png) |
+|                                                      |                                                      |
+|------------------------------------------------------|------------------------------------------------------|
+| ![登录页](https://docs.dev007.cn/shop/demo/shop01.png)  | ![控制台](https://docs.dev007.cn/shop/demo/shop02.png)  |
+| ![商品中心](https://docs.dev007.cn/shop/demo/shop03.png) | ![订单中心](https://docs.dev007.cn/shop/demo/shop04.png) |
 
 ### PC 端
 
-| | |
-|---|---|
-| ![PC首页](https://docs.dev007.cn/admin/demo/pc01.png) | ![PC详情](https://docs.dev007.cn/admin/demo/pc02.png) |
+|                                                    |                                                    |
+|----------------------------------------------------|----------------------------------------------------|
+| ![PC首页](https://docs.dev007.cn/shop/demo/pc01.png) | ![会员中心](https://docs.dev007.cn/shop/demo/pc02.png) |
 
 ### 移动端
 
-| | | | |
-|---|---|---|---|
-| ![移动端首页](https://docs.dev007.cn/admin/demo/mobile01.png) | ![移动端功能](https://docs.dev007.cn/admin/demo/mobile02.png) | ![移动端详情](https://docs.dev007.cn/admin/demo/mobile03.png) | ![移动端个人中心](https://docs.dev007.cn/admin/demo/mobile04.png) |
+|                                                         |                                                           |                                                           |                                                         |
+|---------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------------------------|---------------------------------------------------------|
+| ![移动端首页](https://docs.dev007.cn/shop/demo/mobile01.png) | ![移动端商城分类](https://docs.dev007.cn/shop/demo/mobile02.png) | ![移动端个人中心](https://docs.dev007.cn/shop/demo/mobile03.png) | ![移动端登录](https://docs.dev007.cn/shop/demo/mobile04.png) |
 
 ## 开源协议
 

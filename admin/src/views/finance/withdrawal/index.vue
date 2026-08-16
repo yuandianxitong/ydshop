@@ -1,14 +1,14 @@
 <script setup lang="ts" name="FinanceWithdrawal">
 import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref, type Component } from 'vue'
 
 import { distributionApi } from '@/api/distribution'
 import { batchUpdateConfigs, getConfigsByGroup } from '@/api/system/config'
 import { useExport } from '@/composables/useExport'
 import { useUserStore } from '@/store/modules/user.store'
 
-const withdrawalReviewModules = import.meta.glob(
+const withdrawalReviewModules = import.meta.glob<{ default: Component }>(
   '../../distribution/commission/components/WithdrawalLedgerReviewDialog.vue'
 )
 const WithdrawalLedgerReviewDialog = defineAsyncComponent(async () => {

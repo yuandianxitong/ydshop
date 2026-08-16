@@ -1,0 +1,1 @@
+import r from"./error.qgHEoxoY.js";import{d as e,c as o,e as t,a as s}from"./index.CyVReB6Q.js";const a={class:"error404"},d=e({__name:"404",setup:e=>(e,d)=>(s(),o("div",a,[t(r,{code:"404",title:e.$t("errorPage.notFound")},null,8,["title"])]))});export{d as default};

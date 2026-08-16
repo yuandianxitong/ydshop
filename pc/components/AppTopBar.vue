@@ -76,7 +76,7 @@ async function handleLogout() {
 
 onMounted(() => {
   fetchAnnouncements()
-  // 进入站点时若已登录但还没拉过 userInfo，主动拉一次（用于顶栏显示昵称）
+  userStore.syncFromStorage()
   if (userStore.isLoggedIn && !userStore.userInfo) {
     userStore.fetchUserInfo().catch(() => { /* silent */ })
   }

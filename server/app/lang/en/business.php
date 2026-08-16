@@ -79,6 +79,9 @@ return [
     'template_code_exists'      => 'Template code already exists',
     'template_not_found'        => 'Template not found',
     'template_disabled'         => 'Message template [%s] not found or disabled',
+    'sms_template_id_missing'   => 'Message template [%s] has SMS enabled but no SMS template ID',
+    'message_no_channel'        => 'Message template [%s] has no available send channel',
+    'sms_channel_not_enabled'   => 'SMS channel is not enabled for this scene',
     'template_code_required'    => 'Template code is required',
 
     // Payment
@@ -105,6 +108,7 @@ return [
     'user_not_found'            => 'User not found',
     'user_account_disabled'     => 'Account has been disabled',
     'user_password_error'       => 'Incorrect password',
+    'user_password_not_set'     => 'This account has no password. Please sign in with a verification code',
     'no_updatable_fields'       => 'No updatable fields',
     'user_old_password_error'   => 'Current password is incorrect',
 

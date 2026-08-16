@@ -114,8 +114,10 @@
 
       <template #footer>
         <div class="flex justify-end gap-3">
-          <NButton @click="showAddDialog = false">取消</NButton>
-          <NButton type="primary" :loading="saving" @click="handleSave">保存</NButton>
+          <button type="button" class="btn-outline" @click="showAddDialog = false">取消</button>
+          <button type="button" class="btn-primary" :disabled="saving" @click="handleSave">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
         </div>
       </template>
     </NModal>
@@ -124,7 +126,7 @@
 
 <script setup lang="ts">
 import {
-  NModal, NForm, NFormItem, NInput, NSelect, NButton, NSwitch,
+  NModal, NForm, NFormItem, NInput, NSelect, NSwitch,
   type FormInst, type FormRules, type SelectOption,
 } from 'naive-ui'
 import { memberApi, type AddressItem } from '~/api/member'

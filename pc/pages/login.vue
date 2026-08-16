@@ -133,13 +133,11 @@ import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
 import { commonApi } from '~/api/common'
 import { authApi } from '~/api/auth'
-import { setToken } from '~/composables/useRequest'
 
 definePageMeta({ layout: 'blank' })
 
 const message = useMessage()
 const userStore = useUserStore()
-const router = useRouter()
 const route = useRoute()
 const redirectPath = computed(() => {
   const r = route.query.redirect as string
@@ -162,7 +160,7 @@ async function handlePasswordLogin() {
     const res = await userStore.login(passwordForm)
     if (res.code === 200) {
       message.success('登录成功')
-      router.push(redirectPath.value)
+      await navigateTo(redirectPath.value)
     } else {
       message.error(res.message || '登录失败')
     }
@@ -181,7 +179,7 @@ async function handleSmsLogin() {
     const res = await userStore.smsLogin(smsForm)
     if (res.code === 200) {
       message.success('登录成功')
-      router.push(redirectPath.value)
+      await navigateTo(redirectPath.value)
     } else {
       message.error(res.message || '登录失败')
     }
@@ -233,10 +231,9 @@ async function handleWechatCallback(code: string) {
   try {
     const res = await authApi.wechatLogin({ code })
     if (res.code === 200) {
-      userStore.$patch({ token: res.data.token })
-      setToken(res.data.token)
+      userStore.applyAuth(res.data ?? res)
       message.success('登录成功')
-      router.push(redirectPath.value)
+      await navigateTo(redirectPath.value)
     } else {
       message.error(res.message || '微信登录失败')
     }

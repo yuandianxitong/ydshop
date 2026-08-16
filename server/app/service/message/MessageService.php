@@ -94,7 +94,10 @@ class MessageService extends Service
         $results = [];
 
         // 短信通道
-        if ($template->sms_enabled && !empty($receivers['phone']) && !empty($template->sms_template_id)) {
+        if (!empty($receivers['phone']) && $template->sms_enabled) {
+            if (empty($template->sms_template_id)) {
+                throw new BusinessException(sprintf(lang('business.sms_template_id_missing'), $code));
+            }
             $results['sms'] = $this->sendChannel(
                 'sms',
                 $template,
@@ -130,6 +133,10 @@ class MessageService extends Service
                 ['page' => $template->wechat_mini_page],
                 $eventKey
             );
+        }
+
+        if ($results === []) {
+            throw new BusinessException(sprintf(lang('business.message_no_channel'), $code));
         }
 
         return $results;

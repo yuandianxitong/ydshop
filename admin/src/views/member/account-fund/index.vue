@@ -204,7 +204,7 @@
 
 <script setup lang="ts" name="AccountFundCenter">
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, reactive, ref, type Component } from 'vue'
 
 import { accountFundApi, type BalanceLogInfo, type FundStats, type RechargeOrderInfo, type WithdrawalInfo } from '@/api/account-fund'
 import ProTable from '@/components/ProTable/index.vue'
@@ -212,7 +212,7 @@ import type { ProColumn } from '@/components/ProTable/types'
 import { useExport } from '@/composables/useExport'
 import { useUserStore } from '@/store/modules/user.store'
 
-const withdrawalReviewModules = import.meta.glob(
+const withdrawalReviewModules = import.meta.glob<{ default: Component }>(
   '../../distribution/commission/components/WithdrawalLedgerReviewDialog.vue'
 )
 const WithdrawalLedgerReviewDialog = defineAsyncComponent(async () => {

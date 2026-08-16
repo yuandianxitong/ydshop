@@ -26,38 +26,64 @@ export interface GoodsListResponse {
   }
 }
 
-// 详情接口仍按 spu_id 关联，保留更完整的字段（如 cover / price / status 等仍由详情接口提供）
+/** C 端公开详情：findPublicDetail 直接 toArray，字段与后台 getDetail 不完全相同 */
+export interface GoodsSpecName {
+  id: number
+  name: string
+  values: Array<{ id: number; value: string }>
+}
+
+export interface GoodsAttributeValue {
+  attribute_id: number
+  value: string
+  attribute?: { id: number; name: string }
+}
+
 export interface GoodsDetail {
   id: number
-  spu_id: number
+  spu_id?: number
   name: string
   subtitle?: string
-  cover: string
-  description: string  // 短描述
-  detail: string       // 富文本详情（后台编辑器内容）
+  /** 公开详情通常没有 cover，用 images[0] */
+  cover?: string
+  description: string
+  detail: string
   images: string[]
-  price: number
-  original_price: number
-  sales: number
-  stock: number
+  price?: number
+  min_price?: number
+  max_price?: number
+  original_price?: number
+  sales?: number
+  sales_count?: number
+  stock?: number
+  total_stock?: number
   category_id: number
   category_name?: string
   status: string
-  /** SPU 级支持的配送方式（如 ['express','pickup','merchant']），缺省视为 ['express','pickup'] */
   delivery_modes?: string[]
   skus: SkuItem[]
-  attributes: AttributeItem[]
+  /** 后台 getDetail 格式化后的规格组 */
+  specs?: Array<{ name: string; values: string[] }>
+  /** 公开详情原始关联 */
+  specNames?: GoodsSpecName[]
+  attributes?: AttributeItem[]
+  attributeValues?: GoodsAttributeValue[]
 }
 
 export interface SkuItem {
   id: number
   spu_id: number
-  name: string
+  name?: string
+  spec_text?: string
   price: number
-  original_price: number
+  original_price?: number
+  market_price?: number
   stock: number
   image: string
-  attributes: Record<string, string>
+  spec_value_ids?: number[]
+  spec_values?: Record<string, string>
+  /** 旧字段，公开详情没有 */
+  attributes?: Record<string, string>
 }
 
 export interface AttributeItem {

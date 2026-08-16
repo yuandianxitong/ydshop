@@ -192,9 +192,12 @@ class CommonController extends Controller
             $cacheKey = 'sms_code:' . $scene . ':' . $mobile;
 
             // 发送短信（模板变量只传 code，与阿里云/腾讯云模板一致）
-            $this->messageService->send($templateMap[$scene], ['phone' => $mobile], [
+            $results = $this->messageService->send($templateMap[$scene], ['phone' => $mobile], [
                 'code' => $code,
             ]);
+            if (empty($results['sms'])) {
+                return $this->error(lang('business.sms_channel_not_enabled'));
+            }
 
             // 缓存验证码（5分钟有效）
             cache($cacheKey, $code, 300);

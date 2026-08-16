@@ -43,7 +43,7 @@
               @mouseleave="zoomActive = false"
             >
               <img
-                :src="activeImage || goods.cover"
+                :src="activeImage || coverImage"
                 :alt="goods.name"
                 class="w-full h-full object-cover rounded"
                 draggable="false"
@@ -64,7 +64,7 @@
                 <div
                   class="w-full h-full"
                   :style="{
-                    backgroundImage: `url('${activeImage || goods.cover}')`,
+                    backgroundImage: `url('${activeImage || coverImage}')`,
                     backgroundRepeat: 'no-repeat',
                     backgroundSize: `${ZOOMED_BG}px ${ZOOMED_BG}px`,
                     backgroundPosition: `-${lensX * ZOOM}px -${lensY * ZOOM}px`,
@@ -106,12 +106,12 @@
             <!-- Price display -->
             <div class="mt-3 py-3 px-4 bg-gray-50 rounded">
               <template v-if="selectedSku">
-                <span class="text-2xl font-bold text-red-500">¥{{ selectedSku.price.toFixed(2) }}</span>
+                <span class="text-2xl font-bold text-red-500">¥{{ formatPrice(selectedSku.price) }}</span>
                 <span
-                  v-if="selectedSku.original_price > selectedSku.price"
+                  v-if="skuOriginalPrice(selectedSku) > Number(selectedSku.price)"
                   class="ml-2 text-sm text-gray-400 line-through"
                 >
-                  ¥{{ selectedSku.original_price.toFixed(2) }}
+                  ¥{{ formatPrice(skuOriginalPrice(selectedSku)) }}
                 </span>
               </template>
               <template v-else>
@@ -125,6 +125,7 @@
                 v-if="specGroups.length > 0 || goods.skus.length > 0"
                 :specs="specGroups"
                 :skus="skuItems"
+                @change="handleSpecChange"
                 @confirm="handleSpecConfirm"
               >
                 <template #actions="{ disabled, onConfirm }">
@@ -162,14 +163,14 @@
                 {{ isFavorite ? '已收藏' : '收藏商品' }}
               </button>
               <span class="text-gray-200">|</span>
-              <span class="text-sm text-gray-400">已售 {{ goods.sales || 0 }} 件</span>
+              <span class="text-sm text-gray-400">已售 {{ salesCount }} 件</span>
             </div>
           </div>
         </div>
 
         <!-- ===== Bottom: Tabs ===== -->
         <div class="mt-5 bg-white rounded-sm">
-          <NTabs type="line" animated :default-value="'detail'" class="px-4">
+          <NTabs type="line" animated :default-value="'detail'" class="goods-tabs px-4">
 
             <!-- Tab 1: 商品详情（富文本） -->
             <NTabPane name="detail" tab="商品详情">
@@ -187,12 +188,12 @@
             <NTabPane name="attrs" tab="规格参数">
               <div class="py-4 px-2">
                 <table
-                  v-if="goods.attributes && goods.attributes.length"
+                  v-if="paramAttrs.length"
                   class="w-full text-sm border-collapse"
                 >
                   <tbody>
                     <tr
-                      v-for="attr in goods.attributes"
+                      v-for="attr in paramAttrs"
                       :key="attr.name"
                       class="border-b border-gray-100"
                     >
@@ -275,7 +276,7 @@ import { NButton, NTabs, NTabPane, NRate, useMessage } from 'naive-ui'
 import DOMPurify from 'dompurify'
 import SpecSelector from '~/components/SpecSelector.vue'
 import type { SpecGroup, SkuItem as SelectorSkuItem } from '~/components/SpecSelector.vue'
-import { goodsApi, type GoodsDetail, type SkuItem, type ReviewItem } from '~/api/goods'
+import { goodsApi, type GoodsDetail, type ReviewItem } from '~/api/goods'
 import { cartApi } from '~/api/cart'
 import { memberApi } from '~/api/member'
 import { useUserStore } from '~/store/user'
@@ -339,17 +340,40 @@ const allImages = computed<string[]>(() => {
   return imgs
 })
 
+const coverImage = computed(() => goods.value?.cover || goods.value?.images?.[0] || '')
+const salesCount = computed(() => goods.value?.sales ?? goods.value?.sales_count ?? 0)
+
 const specGroups = computed<SpecGroup[]>(() => {
+  const backendSpecs = goods.value?.specs
+  if (backendSpecs?.length) {
+    return backendSpecs.map((spec, specIdx) => ({
+      name: spec.name,
+      values: spec.values.map((v, vIdx) => ({
+        id: specIdx * 1000 + vIdx + 1,
+        value: v,
+      })),
+    }))
+  }
+
+  const specNames = goods.value?.specNames
+  if (specNames?.length) {
+    return specNames.map((spec, specIdx) => ({
+      name: spec.name,
+      values: (spec.values ?? []).map((v, vIdx) => ({
+        id: v.id ?? specIdx * 1000 + vIdx + 1,
+        value: v.value,
+      })),
+    }))
+  }
+
   if (!goods.value?.skus?.length) return []
-  // Build spec groups from sku attributes
   const map: Record<string, Set<string>> = {}
-  goods.value.skus.forEach(sku => {
-    Object.entries(sku.attributes || {}).forEach(([name, val]) => {
+  goods.value.skus.forEach((sku) => {
+    Object.entries(sku.spec_values || sku.attributes || {}).forEach(([name, val]) => {
       if (!map[name]) map[name] = new Set()
       map[name].add(val)
     })
   })
-  // Assign stable IDs by creating value objects with index-based IDs
   return Object.entries(map).map(([name, valSet], specIdx) => ({
     name,
     values: Array.from(valSet).map((v, vIdx) => ({
@@ -360,15 +384,60 @@ const specGroups = computed<SpecGroup[]>(() => {
 })
 
 const skuItems = computed<SelectorSkuItem[]>(() => {
-  if (!goods.value?.skus) return []
-  return goods.value.skus as SelectorSkuItem[]
+  const skus = goods.value?.skus ?? []
+  if (!skus.length) return []
+
+  const idMap = new Map<number, { specName: string; value: string }>()
+  ;(goods.value?.specNames ?? []).forEach((spec) => {
+    ;(spec.values ?? []).forEach((v) => {
+      idMap.set(v.id, { specName: spec.name, value: v.value })
+    })
+  })
+
+  return skus.map((sku) => {
+    let specValues = sku.spec_values && Object.keys(sku.spec_values).length
+      ? sku.spec_values
+      : undefined
+    if (!specValues && idMap.size) {
+      specValues = {}
+      ;(sku.spec_value_ids ?? []).forEach((vid) => {
+        const found = idMap.get(vid)
+        if (found) specValues![found.specName] = found.value
+      })
+    }
+    const mapped = specValues || sku.attributes || {}
+    return {
+      ...sku,
+      price: Number(sku.price),
+      original_price: Number(sku.original_price ?? sku.market_price ?? 0),
+      spec_values: mapped,
+      attributes: mapped,
+    }
+  })
 })
 
 const selectedSku = computed<SelectorSkuItem | null>(() => currentSku.value)
 
+const paramAttrs = computed(() => {
+  const rawAttrs = goods.value?.attributes
+  if (rawAttrs?.length && rawAttrs[0]?.name && Array.isArray(rawAttrs[0].values)) {
+    return rawAttrs
+  }
+  const map = new Map<string, string[]>()
+  ;(goods.value?.attributeValues ?? []).forEach((av) => {
+    const name = av.attribute?.name || '参数'
+    if (!map.has(name)) map.set(name, [])
+    map.get(name)!.push(av.value)
+  })
+  return [...map.entries()].map(([name, values]) => ({ name, values }))
+})
+
 const displayPriceRange = computed(() => {
-  if (!goods.value?.skus?.length) return `¥${goods.value?.price?.toFixed(2) ?? '0.00'}`
-  const prices = goods.value.skus.filter(s => s.stock > 0).map(s => s.price)
+  if (!goods.value?.skus?.length) {
+    const fallback = goods.value?.min_price ?? goods.value?.price ?? 0
+    return `¥${formatPrice(fallback)}`
+  }
+  const prices = goods.value.skus.filter(s => s.stock > 0).map(s => Number(s.price))
   if (!prices.length) return '暂无库存'
   const min = Math.min(...prices)
   const max = Math.max(...prices)
@@ -395,6 +464,20 @@ function onImgError(e: Event) {
 function onAvatarError(e: Event) {
   const img = e.target as HTMLImageElement
   img.src = defaultAvatar
+}
+
+function formatPrice(val: string | number | undefined | null): string {
+  const n = Number(val)
+  return Number.isFinite(n) ? n.toFixed(2) : '0.00'
+}
+
+function skuOriginalPrice(sku: SelectorSkuItem): number {
+  return Number(sku.original_price ?? sku.market_price ?? 0)
+}
+
+function handleSpecChange(payload: { sku: SelectorSkuItem | null; quantity: number }) {
+  currentSku.value = payload.sku
+  currentQty.value = payload.quantity
 }
 
 function handleSpecConfirm(payload: { sku: SelectorSkuItem; quantity: number }) {
@@ -438,7 +521,7 @@ async function handleBuyNow() {
     message.warning('请先选择规格')
     return
   }
-  router.push(`/checkout?sku_id=${sku.id}&quantity=${currentQty.value}`)
+  router.push(`/checkout?goods_id=${goods.value?.id}&sku_id=${sku.id}&quantity=${currentQty.value}`)
 }
 
 function getActiveSku(): SelectorSkuItem | null {
@@ -590,5 +673,12 @@ onMounted(async () => {
 .goods-description :deep(h3) {
   font-weight: 600;
   margin-bottom: 10px;
+}
+
+.goods-tabs :deep(.n-tabs-tab--active) {
+  color: var(--color-primary);
+}
+.goods-tabs :deep(.n-tabs-bar) {
+  background-color: var(--color-primary);
 }
 </style>

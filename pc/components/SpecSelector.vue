@@ -1,16 +1,15 @@
 <template>
   <div class="spec-selector">
-    <!-- No SKUs: single product with no variants -->
     <template v-if="!hasSpecs">
       <div class="spec-selector__price">
         <span class="text-2xl font-bold text-[var(--color-primary)]">
-          ¥{{ singleSku ? singleSku.price.toFixed(2) : '0.00' }}
+          ¥{{ formatPrice(singleSku?.price) }}
         </span>
         <span
-          v-if="singleSku && singleSku.original_price > singleSku.price"
+          v-if="singleSku && skuOriginalPrice(singleSku) > Number(singleSku.price)"
           class="ml-2 text-sm text-gray-400 line-through"
         >
-          ¥{{ singleSku.original_price.toFixed(2) }}
+          ¥{{ formatPrice(skuOriginalPrice(singleSku)) }}
         </span>
       </div>
       <div class="spec-selector__stock mt-1 text-sm text-gray-400">
@@ -18,9 +17,7 @@
       </div>
     </template>
 
-    <!-- Has specs -->
     <template v-else>
-      <!-- Selected SKU info bar -->
       <div class="spec-selector__info mb-4">
         <template v-if="selectedSku">
           <div class="flex items-center gap-3">
@@ -32,12 +29,12 @@
             />
             <div>
               <div class="text-xl font-bold text-[var(--color-primary)]">
-                ¥{{ selectedSku.price.toFixed(2) }}
+                ¥{{ formatPrice(selectedSku.price) }}
                 <span
-                  v-if="selectedSku.original_price > selectedSku.price"
+                  v-if="skuOriginalPrice(selectedSku) > Number(selectedSku.price)"
                   class="ml-1 text-sm text-gray-400 line-through font-normal"
                 >
-                  ¥{{ selectedSku.original_price.toFixed(2) }}
+                  ¥{{ formatPrice(skuOriginalPrice(selectedSku)) }}
                 </span>
               </div>
               <div class="text-xs text-gray-400 mt-0.5">库存：{{ selectedSku.stock }}件</div>
@@ -50,7 +47,6 @@
         </template>
       </div>
 
-      <!-- Spec groups -->
       <div
         v-for="spec in specs"
         :key="spec.name"
@@ -75,21 +71,38 @@
       </div>
     </template>
 
-    <!-- Quantity -->
     <div class="spec-selector__quantity mt-4 flex items-center gap-3">
       <span class="text-sm text-gray-600">数量</span>
-      <NInputNumber
-        v-model:value="quantity"
-        :min="1"
-        :max="maxStock"
-        :disabled="maxStock === 0"
-        size="small"
-        class="w-32"
-      />
+      <div class="qty-stepper">
+        <button
+          type="button"
+          class="qty-btn"
+          :disabled="quantity <= 1 || maxStock === 0"
+          @click="changeQty(-1)"
+        >
+          −
+        </button>
+        <input
+          type="number"
+          class="qty-input"
+          :value="quantity"
+          min="1"
+          :max="maxStock || 1"
+          :disabled="maxStock === 0"
+          @change="onQtyInput"
+        />
+        <button
+          type="button"
+          class="qty-btn"
+          :disabled="quantity >= maxStock || maxStock === 0"
+          @click="changeQty(1)"
+        >
+          +
+        </button>
+      </div>
       <span v-if="maxStock === 0" class="text-xs text-red-400">暂无库存</span>
     </div>
 
-    <!-- Actions -->
     <div class="spec-selector__actions mt-5 flex gap-3">
       <slot name="actions" :disabled="confirmDisabled" :on-confirm="handleConfirm">
         <NButton
@@ -106,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { NInputNumber, NButton } from 'naive-ui'
+import { NButton } from 'naive-ui'
 
 export interface SpecValue {
   id: number
@@ -121,13 +134,15 @@ export interface SpecGroup {
 export interface SkuItem {
   id: number
   spu_id: number
-  name: string
+  name?: string
+  spec_text?: string
   price: number
-  original_price: number
+  original_price?: number
+  market_price?: number
   stock: number
   image: string
-  /** key: spec name, value: spec value string */
-  attributes: Record<string, string>
+  spec_values?: Record<string, string>
+  attributes?: Record<string, string>
 }
 
 const props = defineProps<{
@@ -137,36 +152,48 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   confirm: [payload: { sku: SkuItem; quantity: number }]
+  change: [payload: { sku: SkuItem | null; quantity: number }]
 }>()
 
-// -------- state --------
-/** map: specName -> selected value id */
 const selectedMap = ref<Record<string, number>>({})
 const quantity = ref(1)
 
-// -------- computed --------
 const hasSpecs = computed(() => props.specs && props.specs.length > 0)
 const singleSku = computed(() => (!hasSpecs.value && props.skus.length > 0) ? props.skus[0] : null)
 
+function skuSpecMap(sku: SkuItem | null | undefined): Record<string, string> {
+  if (!sku) return {}
+  return sku.spec_values || sku.attributes || {}
+}
+
+function skuOriginalPrice(sku: SkuItem): number {
+  return Number(sku.original_price ?? sku.market_price ?? 0)
+}
+
+function formatPrice(val: string | number | undefined | null): string {
+  const n = Number(val)
+  return Number.isFinite(n) ? n.toFixed(2) : '0.00'
+}
+
+function skuMatches(sku: SkuItem, trial: Record<string, number>, requireAll: boolean): boolean {
+  return props.specs.every((spec) => {
+    const trialId = trial[spec.name]
+    if (trialId == null) return !requireAll
+    const trialVal = spec.values.find(v => v.id === trialId)
+    if (!trialVal) return false
+    return skuSpecMap(sku)[spec.name] === trialVal.value
+  })
+}
+
 const selectedSku = computed<SkuItem | null>(() => {
   if (!hasSpecs.value) return singleSku.value
-  // Check all spec groups have a selection
   if (props.specs.some(s => selectedMap.value[s.name] == null)) return null
-
-  // Find SKU whose attributes match every selected value
-  return props.skus.find(sku => {
-    return props.specs.every(spec => {
-      const selectedValId = selectedMap.value[spec.name]
-      const selectedVal = spec.values.find(v => v.id === selectedValId)
-      if (!selectedVal) return false
-      return sku.attributes[spec.name] === selectedVal.value
-    })
-  }) ?? null
+  return props.skus.find(sku => skuMatches(sku, selectedMap.value, true)) ?? null
 })
 
 const priceRange = computed(() => {
   if (!props.skus.length) return '¥0.00'
-  const prices = props.skus.filter(s => s.stock > 0).map(s => s.price)
+  const prices = props.skus.filter(s => s.stock > 0).map(s => Number(s.price))
   if (!prices.length) return '暂无库存'
   const min = Math.min(...prices)
   const max = Math.max(...prices)
@@ -184,46 +211,45 @@ const confirmDisabled = computed(() => {
   return maxStock.value === 0
 })
 
-// -------- helpers --------
 function isSelected(specName: string, valId: number): boolean {
   return selectedMap.value[specName] === valId
 }
 
-/**
- * A spec value is disabled when selecting it would yield no valid (in-stock) SKU,
- * considering the currently selected values of other specs.
- */
 function isDisabled(specName: string, valId: number): boolean {
   const specVal = props.specs.find(s => s.name === specName)?.values.find(v => v.id === valId)
   if (!specVal) return true
-
-  // Build a trial selection: current selections + this value
   const trial: Record<string, number> = { ...selectedMap.value, [specName]: valId }
-
-  return !props.skus.some(sku => {
-    if (sku.stock <= 0) return false
-    return props.specs.every(spec => {
-      const trialId = trial[spec.name]
-      if (trialId == null) return true // not yet selected, skip constraint
-      const trialVal = spec.values.find(v => v.id === trialId)
-      if (!trialVal) return false
-      return sku.attributes[spec.name] === trialVal.value
-    })
-  })
+  return !props.skus.some(sku => sku.stock > 0 && skuMatches(sku, trial, false))
 }
 
 function selectValue(specName: string, valId: number) {
   if (isDisabled(specName, valId)) return
   if (selectedMap.value[specName] === valId) {
-    // toggle off
     const updated = { ...selectedMap.value }
     delete updated[specName]
     selectedMap.value = updated
   } else {
     selectedMap.value = { ...selectedMap.value, [specName]: valId }
   }
-  // Reset quantity to 1 when selection changes
   quantity.value = 1
+}
+
+function clampQty(val: number): number {
+  if (!Number.isFinite(val)) return 1
+  const max = maxStock.value || 1
+  return Math.min(max, Math.max(1, Math.floor(val)))
+}
+
+function changeQty(delta: number) {
+  if (maxStock.value === 0) return
+  quantity.value = clampQty(quantity.value + delta)
+}
+
+function onQtyInput(e: Event) {
+  const input = e.target as HTMLInputElement
+  const next = clampQty(Number(input.value))
+  quantity.value = next
+  input.value = String(next)
 }
 
 function handleConfirm() {
@@ -232,7 +258,31 @@ function handleConfirm() {
   emit('confirm', { sku, quantity: quantity.value })
 }
 
-// Watch maxStock to clamp quantity
+function applyDefaultSelection() {
+  if (!hasSpecs.value || Object.keys(selectedMap.value).length) return
+  const firstInStock = props.skus.find(s => s.stock > 0) ?? props.skus[0]
+  const values = skuSpecMap(firstInStock)
+  const next: Record<string, number> = {}
+  if (firstInStock && Object.keys(values).length) {
+    props.specs.forEach((spec) => {
+      const found = spec.values.find(v => v.value === values[spec.name])
+      if (found) next[spec.name] = found.id
+    })
+  }
+  if (!Object.keys(next).length) {
+    props.specs.forEach((spec) => {
+      if (spec.values?.[0]) next[spec.name] = spec.values[0].id
+    })
+  }
+  selectedMap.value = next
+}
+
+watch(() => [props.specs, props.skus], applyDefaultSelection, { immediate: true, deep: true })
+
+watch([selectedSku, quantity], () => {
+  emit('change', { sku: selectedSku.value, quantity: quantity.value })
+}, { immediate: true })
+
 watch(maxStock, (val) => {
   if (val > 0 && quantity.value > val) quantity.value = val
   if (val === 0) quantity.value = 1
@@ -277,5 +327,48 @@ watch(maxStock, (val) => {
   height: 1px;
   background: #ccc;
   transform: rotate(-10deg);
+}
+
+.qty-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #fff;
+}
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  background: #fafafa;
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border: 0;
+  transition: background-color 0.15s;
+}
+.qty-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+.qty-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.qty-input {
+  width: 48px;
+  height: 28px;
+  border: 0;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 0.8125rem;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 </style>

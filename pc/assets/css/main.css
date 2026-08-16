@@ -49,6 +49,13 @@ button {
   cursor: pointer;
 }
 
+/* Tailwind reset 把 button 背景设为 transparent，Naive 主按钮会变成白底 */
+.n-button.n-button--primary-type:not(.n-button--disabled) {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
+}
+
 select {
   -webkit-appearance: none;
   -moz-appearance: none;

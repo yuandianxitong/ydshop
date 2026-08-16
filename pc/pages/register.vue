@@ -70,7 +70,6 @@
 <script setup lang="ts">
 import { useMessage } from 'naive-ui'
 import { useUserStore } from '~/store/user'
-import { setToken } from '~/composables/useRequest'
 import { authApi } from '~/api/auth'
 import { commonApi } from '~/api/common'
 
@@ -78,7 +77,6 @@ definePageMeta({ layout: 'blank' })
 
 const message = useMessage()
 const userStore = useUserStore()
-const router = useRouter()
 const form = reactive({ mobile: '', code: '', password: '', password_confirmation: '' })
 const submitting = ref(false)
 const countdown = ref(0)
@@ -119,9 +117,8 @@ async function handleRegister() {
     const res = await authApi.register(form)
     if (res.code === 200) {
       message.success('注册成功')
-      userStore.$patch({ token: res.data.token })
-      setToken(res.data.token)
-      router.push('/')
+      userStore.applyAuth(res.data ?? res)
+      await navigateTo('/')
     } else {
       message.error(res.message || '注册失败')
     }
