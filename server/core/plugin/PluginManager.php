@@ -9,6 +9,7 @@ use app\model\plugin\PluginMigration;
 use app\model\system\Menu;
 use app\model\system\Permission;
 use core\database\SqlRunner;
+use core\license\MarketplaceEntitlement;
 use PDO;
 use think\facade\Db;
 
@@ -250,6 +251,10 @@ class PluginManager
             );
         }
 
+        if ($manifest->code === 'points_product') {
+            self::absorbLegacyPointsOrder();
+        }
+
         self::checkRequires($manifest);
         self::checkMenuConflicts($manifest);
         self::checkPermissionConflicts($manifest);
@@ -378,6 +383,10 @@ class PluginManager
         $from = (string) $app->version;
         $to   = $manifest->version;
 
+        if ($code === 'points_product') {
+            self::absorbLegacyPointsOrder();
+        }
+
         if (version_compare($to, $from, '<=')) {
             throw new PluginException(
                 "无需升级：当前已是 $from",
@@ -462,6 +471,39 @@ class PluginManager
     // ------------------------------------------------------------------
     // Lifecycle helpers
     // ------------------------------------------------------------------
+
+    /**
+     * points_order 已并入 points_product：接管菜单/权限后删除旧插件行，不 drop 表。
+     */
+    private static function absorbLegacyPointsOrder(): void
+    {
+        $legacy = Plugin::where('code', 'points_order')->find();
+        if (!$legacy) {
+            return;
+        }
+
+        Menu::withTrashed()->where('plugin_code', 'points_order')->update(['plugin_code' => 'points_product']);
+        Permission::withTrashed()->where('plugin_code', 'points_order')->update(['plugin_code' => 'points_product']);
+        PluginMigration::where('plugin_code', 'points_order')->delete();
+        Plugin::where('code', 'points_order')->delete();
+        self::audit(
+            'points_order',
+            PluginInstallLog::ACTION_UNINSTALL,
+            $legacy->version,
+            null,
+            PluginInstallLog::STATUS_SUCCESS,
+            'absorbed into points_product'
+        );
+
+        $rows = MarketplaceEntitlement::all();
+        if (is_array($rows) && isset($rows['points_order'])) {
+            if (!isset($rows['points_product'])) {
+                $rows['points_product'] = $rows['points_order'];
+            }
+            unset($rows['points_order']);
+            MarketplaceEntitlement::save($rows);
+        }
+    }
 
     private static function checkRequires(PluginManifest $m): void
     {

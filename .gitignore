@@ -43,7 +43,6 @@ server/plugins/flash_sale/
 server/plugins/group_buy/
 server/plugins/lottery/
 server/plugins/points_product/
-server/plugins/points_order/
 server/plugins/distribution/
 server/plugins/ai_assistant/
 

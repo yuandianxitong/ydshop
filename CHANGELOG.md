@@ -4,12 +4,20 @@
 
 ## [Unreleased]
 
+### Added
+- 插件市场支持连接官网账号，按已购权益一键下载并安装 Shop 组件
+- `plugin:pack` 将付费组件对应的 admin / PC / uniapp 页面打入 zip 的 `_frontend/`，安装时自动部署；支持 `--all`
+
 ### Changed
+- 兑换订单并入积分商品插件（`points_product` 1.1.0），不再单独分发 `points_order`；后台仍保留商品与订单两个菜单
 - 插件打包输出改为 `server/runtime/plugin-packages/`（`php think plugin:pack`），移除源码树中的 `server/plugin-packs/`
 - 分销裂变、AI 商品助手从核心抽出为付费插件；三方同城配送与电子面单仍留在 Apache 核心
 - 开源协议由 MIT 调整为 Apache-2.0：新增 `NOTICE` 版权与商标声明；核心免费开源，秒杀/拼团等付费组件不进公开仓
-- 秒杀 / 拼团 / 抽奖 / 积分商品与积分订单不再随仓分发，也不再随全新安装捆绑入册；请从官网市场下载 zip 后在「插件市场」上传安装
+- 秒杀 / 拼团 / 抽奖 / 积分商品不再随仓分发，也不再随全新安装捆绑入册；请从官网市场下载 zip 后在「插件市场」上传安装
 - 公开仓库改为 `yuandianxitong/ydshop`（GitHub / Gitee）
+
+### Fixed
+- 插件市场本地上传 zip：`/tmp` 与站点不在同一文件系统时 `rename` 目录失败返回 500；改为跨盘复制并解压到 `runtime/`
 
 ### Added
 - 插件市场对接官网 `runtime=shop` 组件目录；付费组件启用受权益软门控

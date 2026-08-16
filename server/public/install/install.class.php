@@ -476,7 +476,7 @@ class Installer
 
     /**
      * Bundled plugin install order (dependencies first).
-     * new_user_gift after coupon; points_order after points_product.
+     * new_user_gift after coupon.
      */
     private const BUNDLED_PLUGIN_INSTALL_ORDER = [
         'content_mgmt',

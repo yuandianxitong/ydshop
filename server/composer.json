@@ -58,7 +58,6 @@
             "plugins\\new_user_gift\\": "plugins/new_user_gift/",
             "plugins\\sign\\": "plugins/sign/",
             "plugins\\points_product\\": "plugins/points_product/",
-            "plugins\\points_order\\": "plugins/points_order/",
             "plugins\\content_mgmt\\": "plugins/content_mgmt/",
             "plugins\\article\\": "plugins/article/",
             "plugins\\ai_assistant\\": "plugins/ai_assistant/",

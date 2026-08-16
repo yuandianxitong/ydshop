@@ -19,9 +19,9 @@ class PluginPacker
     }
 
     /**
-     * @return string Absolute path of the written zip
+     * @return array{path: string, frontend_files: int}
      */
-    public static function pack(string $code, ?string $outputDir = null, bool $force = false): string
+    public static function pack(string $code, ?string $outputDir = null, bool $force = false): array
     {
         $code = trim($code);
         if ($code === '' || !preg_match('/^[a-z][a-z0-9_]*$/', $code)) {
@@ -55,7 +55,7 @@ class PluginPacker
         }
 
         $tmpZip = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'plugin-pack-' . $code . '-' . uniqid('', true) . '.zip';
-        self::buildZip($dir, $tmpZip);
+        $frontendFiles = self::buildZip($dir, $tmpZip, $code);
 
         if (is_file($finalPath)) {
             unlink($finalPath);
@@ -66,10 +66,10 @@ class PluginPacker
         }
         @unlink($tmpZip);
 
-        return $finalPath;
+        return ['path' => $finalPath, 'frontend_files' => $frontendFiles];
     }
 
-    private static function buildZip(string $dir, string $zipPath): void
+    private static function buildZip(string $dir, string $zipPath, string $code): int
     {
         $zip = new ZipArchive();
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
@@ -78,6 +78,7 @@ class PluginPacker
 
         try {
             self::addDir($zip, $dir);
+            $frontendFiles = self::addFrontend($zip, $code);
         } catch (\Throwable $e) {
             $zip->close();
             @unlink($zipPath);
@@ -89,6 +90,8 @@ class PluginPacker
             @unlink($zipPath);
             throw new PluginException('打包结果缺少 plugin.json', PluginException::ERR_ZIP_INVALID);
         }
+
+        return $frontendFiles;
     }
 
     private static function zipHasRootManifest(string $zipPath): bool
@@ -117,6 +120,9 @@ class PluginPacker
                 continue;
             }
             $rel = str_replace('\\', '/', substr($item->getPathname(), strlen($absDir) + 1));
+            if ($rel === PluginFrontendDeployer::ZIP_PREFIX || str_starts_with($rel, PluginFrontendDeployer::ZIP_PREFIX . '/')) {
+                continue;
+            }
             foreach (explode('/', $rel) as $part) {
                 if (in_array($part, self::SKIP_NAMES, true)) {
                     continue 2;
@@ -128,5 +134,47 @@ class PluginPacker
                 $zip->addFile($item->getPathname(), $rel);
             }
         }
+    }
+
+    private static function addFrontend(ZipArchive $zip, string $code): int
+    {
+        $root = PluginFrontendDeployer::projectRoot();
+        $count = 0;
+        foreach (PluginFrontendMap::relativePaths($code) as $rel) {
+            if (!PluginFrontendMap::isAllowedRelative($rel)) {
+                continue;
+            }
+            $abs = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+            if (is_file($abs)) {
+                $zip->addFile($abs, PluginFrontendDeployer::ZIP_PREFIX . '/' . $rel);
+                $count++;
+                continue;
+            }
+            if (!is_dir($abs)) {
+                continue;
+            }
+            $items = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($abs, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ($items as $item) {
+                if ($item->isLink()) {
+                    continue;
+                }
+                $name = $item->getFilename();
+                if (in_array($name, self::SKIP_NAMES, true) || str_ends_with($name, '.log')) {
+                    continue;
+                }
+                $inner = str_replace('\\', '/', substr($item->getPathname(), strlen($abs) + 1));
+                $zipRel = PluginFrontendDeployer::ZIP_PREFIX . '/' . $rel . ($inner !== '' ? '/' . $inner : '');
+                if ($item->isDir()) {
+                    $zip->addEmptyDir($zipRel);
+                } elseif ($item->isFile()) {
+                    $zip->addFile($item->getPathname(), $zipRel);
+                    $count++;
+                }
+            }
+        }
+        return $count;
     }
 }

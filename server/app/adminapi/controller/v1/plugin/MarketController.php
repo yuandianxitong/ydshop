@@ -6,6 +6,7 @@ namespace app\adminapi\controller\v1\plugin;
 use app\service\plugin\PluginService;
 use core\attribute\Permission;
 use core\base\Controller;
+use core\marketplace\OfficialAccountSession;
 use core\marketplace\OfficialCatalogClient;
 use think\Response;
 
@@ -19,19 +20,50 @@ class MarketController extends Controller
     #[Permission('plugin.market')]
     public function catalog(): Response
     {
-        $client = new OfficialCatalogClient();
-        $data = $client->listShopComponents($this->request->get());
-        $list = $data['list'] ?? [];
-        foreach ($list as &$row) {
-            $code = (string) ($row['code'] ?? '');
-            if ($code !== '') {
-                $row['buy_url'] = $client->buyUrl($code);
-            }
+        return $this->success('ok', $this->pluginService->marketCatalog($this->request->get()));
+    }
+
+    #[Permission('plugin.market')]
+    public function session(): Response
+    {
+        $info = OfficialAccountSession::publicInfo();
+        return $this->success('ok', $info ?? ['connected' => false]);
+    }
+
+    #[Permission('plugin.market')]
+    public function connect(): Response
+    {
+        $account = trim((string) $this->request->post('account', ''));
+        $password = (string) $this->request->post('password', '');
+        if ($account === '' || $password === '') {
+            return $this->error('请输入官网账号和密码');
         }
-        unset($row);
-        $data['list'] = $list;
-        $data['site_base'] = $client->siteBase();
-        return $this->success('ok', $data);
+        $login = (new OfficialCatalogClient())->login($account, $password);
+        OfficialAccountSession::save($login['token'], $login['user_info']);
+        $this->pluginService->syncOfficialEntitlements();
+        return $this->success('已连接官网账号', OfficialAccountSession::publicInfo());
+    }
+
+    #[Permission('plugin.market')]
+    public function disconnect(): Response
+    {
+        OfficialAccountSession::clear();
+        return $this->success('已断开官网账号');
+    }
+
+    /**
+     * 从官网下载已购组件并安装。
+     */
+    #[Permission('plugin.market')]
+    public function install(): Response
+    {
+        $code = trim((string) $this->request->post('code', ''));
+        $version = trim((string) $this->request->post('version', ''));
+        if ($code === '') {
+            return $this->error('缺少插件 code');
+        }
+        $installed = $this->pluginService->installFromOfficial($code, $version !== '' ? $version : null);
+        return $this->success('安装成功', ['code' => $installed]);
     }
 
     /**

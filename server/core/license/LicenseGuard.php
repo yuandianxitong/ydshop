@@ -35,7 +35,6 @@ class LicenseGuard
             'group_buy',
             'lottery',
             'points_product',
-            'points_order',
             'distribution',
             'ai_assistant',
         ];
@@ -51,6 +50,9 @@ class LicenseGuard
             return true;
         }
         $row = $entitlements[$code] ?? null;
+        if (!is_array($row) && $code === 'points_product') {
+            $row = $entitlements['points_order'] ?? null;
+        }
         if (!is_array($row)) {
             return false;
         }

@@ -6,9 +6,13 @@ namespace app\service\plugin;
 use app\model\plugin\Plugin;
 use app\repository\plugin\PluginRepository;
 use core\base\Service;
+use core\exception\BusinessException;
 use core\license\LicenseGuard;
 use core\license\MarketplaceEntitlement;
+use core\marketplace\OfficialAccountSession;
+use core\marketplace\OfficialCatalogClient;
 use core\marketplace\PackageSignatureVerifier;
+use core\plugin\PluginFrontendDeployer;
 use core\plugin\PluginInstaller;
 use core\plugin\PluginManager;
 use core\plugin\PluginManifest;
@@ -109,31 +113,179 @@ class PluginService extends Service
     }
 
     /**
+     * Official shop catalog plus local install / official entitlement flags.
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function marketCatalog(array $params): array
+    {
+        $client = new OfficialCatalogClient();
+        $data = $client->listShopComponents($params);
+        $list = $data['list'] ?? [];
+
+        $installed = [];
+        foreach ($this->pluginRepository->listAll() as $row) {
+            $installed[(string) $row['code']] = $row;
+        }
+
+        $owned = [];
+        $connected = OfficialAccountSession::publicInfo();
+        if ($connected !== null) {
+            try {
+                foreach ($this->syncOfficialEntitlements() as $appCode => $ent) {
+                    if (($ent['source'] ?? '') === 'official') {
+                        $owned[$appCode] = $ent;
+                    }
+                }
+            } catch (\Throwable) {
+                OfficialAccountSession::clear();
+                $connected = null;
+            }
+        }
+
+        foreach ($list as &$row) {
+            $code = (string) ($row['code'] ?? '');
+            $row['buy_url'] = $code !== '' ? $client->buyUrl($code) : '';
+            $row['owned'] = $code !== '' && (isset($owned[$code]) || !empty($row['is_free']));
+            $row['installed'] = $code !== '' && isset($installed[$code]);
+            $row['installed_version'] = $code !== '' ? ($installed[$code]['version'] ?? null) : null;
+        }
+        unset($row);
+
+        $data['list'] = $list;
+        $data['site_base'] = $client->siteBase();
+        $data['connected'] = $connected !== null;
+        $data['account'] = $connected;
+        return $data;
+    }
+
+    /**
      * Take an uploaded zip, extract it to a tmp dir, move into plugins/<code>/,
      * then run the standard install lifecycle. Returns the installed plugin code.
      */
     public function uploadAndInstall(string $zipPath): string
     {
-        $tmpDir   = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pluginrt_' . uniqid();
+        return $this->installFromZip($zipPath, 'local_zip');
+    }
+
+    /**
+     * Download a purchased Shop component from the official site and install it.
+     */
+    public function installFromOfficial(string $code, ?string $version = null): string
+    {
+        $code = trim($code);
+        if ($code === '' || !preg_match('/^[a-z][a-z0-9_]*$/', $code)) {
+            throw new BusinessException('无效的插件 code', 422);
+        }
+        $token = OfficialAccountSession::token();
+        if ($token === null || $token === '') {
+            throw new BusinessException('请先连接官网账号', 422);
+        }
+
+        $client = new OfficialCatalogClient();
+        $this->assertOfficialEntitlement($client, $token, $code);
+
+        $tmpZip = rtrim((string) runtime_path(), '/\\') . DIRECTORY_SEPARATOR . 'plugin_dl_' . $code . '_' . uniqid('', true) . '.zip';
+        try {
+            $client->downloadApp($token, $code, $version, $tmpZip);
+            return $this->installFromZip($tmpZip, 'official');
+        } finally {
+            @unlink($tmpZip);
+        }
+    }
+
+    /**
+     * Pull active shop entitlements from the official site into the local cache.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function syncOfficialEntitlements(): array
+    {
+        $token = OfficialAccountSession::token();
+        if ($token === null || $token === '') {
+            throw new BusinessException('请先连接官网账号', 422);
+        }
+        $ents = (new OfficialCatalogClient())->listEntitlements($token);
+        $rows = MarketplaceEntitlement::all() ?? [];
+        foreach ($ents as $ent) {
+            $appCode = (string) ($ent['app_code'] ?? '');
+            if ($appCode === '') {
+                continue;
+            }
+            if (($ent['runtime'] ?? 'shop') === 'saas') {
+                continue;
+            }
+            $rows[$appCode] = [
+                'status'     => 'active',
+                'source'     => 'official',
+                'period_end' => $ent['period_end'] ?? null,
+                'updated_at' => date('c'),
+            ];
+        }
+        MarketplaceEntitlement::save($rows);
+        return $rows;
+    }
+
+    public function installFromZip(string $zipPath, string $entitlementSource = 'local_zip'): string
+    {
+        $tmpDir   = rtrim((string) runtime_path(), '/\\') . DIRECTORY_SEPARATOR . 'pluginrt_' . uniqid('', true);
         $manifest = PluginInstaller::extract($zipPath, $tmpDir);
         if (in_array($manifest->code, LicenseGuard::proPluginCodes(), true)
             || $manifest->category === 'value_added') {
             PackageSignatureVerifier::verifyUploadedZip($zipPath, $manifest->code, $manifest->version);
         }
-        PluginInstaller::moveToPluginsDir($tmpDir, $manifest->code);
-        PluginManager::install($manifest, Plugin::SOURCE_DOWNLOADED);
-        $this->grantLocalEntitlement($manifest->code);
+        PluginFrontendDeployer::deployFromExtracted($tmpDir);
+
+        $existing = $this->pluginRepository->findByCode($manifest->code);
+        $pluginDir = rtrim(PluginManager::pluginsPath(), '/\\') . DIRECTORY_SEPARATOR . $manifest->code;
+        if (is_dir($pluginDir)) {
+            PluginInstaller::replacePluginsDir($tmpDir, $manifest->code);
+        } else {
+            PluginInstaller::moveToPluginsDir($tmpDir, $manifest->code);
+        }
+
+        if ($existing) {
+            if (version_compare($manifest->version, (string) ($existing['version'] ?? '0.0.0'), '>')) {
+                PluginManager::upgrade($manifest->code);
+            }
+        } else {
+            PluginManager::install($manifest, Plugin::SOURCE_DOWNLOADED);
+        }
+        $this->grantLocalEntitlement($manifest->code, $entitlementSource);
         return $manifest->code;
     }
 
-    private function grantLocalEntitlement(string $code): void
+    private function assertOfficialEntitlement(OfficialCatalogClient $client, string $token, string $code): void
+    {
+        foreach ($client->listEntitlements($token) as $ent) {
+            if ((string) ($ent['app_code'] ?? '') === $code && ($ent['runtime'] ?? 'shop') !== 'saas') {
+                return;
+            }
+        }
+        $detail = $client->getApp($code);
+        if (is_array($detail) && !empty($detail['is_free'])) {
+            return;
+        }
+        throw new BusinessException('未持有该组件的官网权益，请先购买', 403);
+    }
+
+    private function grantLocalEntitlement(string $code, string $source = 'local_zip'): void
     {
         if (!in_array($code, LicenseGuard::proPluginCodes(), true)) {
             return;
         }
         $rows = MarketplaceEntitlement::all() ?? [];
         foreach (LicenseGuard::proPluginCodes() as $pluginCode) {
-            if ($pluginCode !== $code && !PluginManager::isInstalled($pluginCode)) {
+            if ($pluginCode !== $code && !PluginManager::isInstalled($pluginCode) && !$this->pluginRepository->findByCode($pluginCode)) {
+                continue;
+            }
+            if ($pluginCode === $code) {
+                $rows[$pluginCode] = [
+                    'status'     => 'active',
+                    'source'     => $source,
+                    'updated_at' => date('c'),
+                ];
                 continue;
             }
             if (!isset($rows[$pluginCode])) {
@@ -150,6 +302,7 @@ class PluginService extends Service
     public function uninstall(string $code, bool $purge = false): void
     {
         PluginManager::uninstall($code, $purge);
+        PluginFrontendDeployer::remove($code);
     }
 
     public function upgrade(string $code): void

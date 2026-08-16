@@ -59,10 +59,30 @@ export const pluginApi = {
         return myRequest.post<void>(`/adminapi/plugins/${code}/disable`)
     },
     catalog(params?: { page?: number; limit?: number; keyword?: string }) {
-        return myRequest.get<{ list: Array<Record<string, any>>; pagination?: Record<string, any>; site_base?: string }>(
+        return myRequest.get<{
+            list: Array<Record<string, any>>
+            pagination?: Record<string, any>
+            site_base?: string
+            connected?: boolean
+            account?: { connected: boolean; account: string; nickname: string; connected_at: string } | null
+        }>(
             '/adminapi/market/catalog',
             { params },
         )
+    },
+    marketSession() {
+        return myRequest.get<{ connected: boolean; account?: string; nickname?: string; connected_at?: string }>(
+            '/adminapi/market/session',
+        )
+    },
+    connectOfficial(data: { account: string; password: string }) {
+        return myRequest.post<{ connected: boolean; account?: string; nickname?: string }>('/adminapi/market/connect', data)
+    },
+    disconnectOfficial() {
+        return myRequest.post<void>('/adminapi/market/disconnect')
+    },
+    installOfficial(code: string, version?: string) {
+        return myRequest.post<{ code: string }>('/adminapi/market/install', version ? { code, version } : { code })
     },
     uploadInstall(file: File, onProgress?: (p: number) => void) {
         const form = new FormData()
