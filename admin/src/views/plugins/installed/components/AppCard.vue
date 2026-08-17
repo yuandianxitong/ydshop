@@ -5,10 +5,7 @@
     -->
     <div
         class="ap-card"
-        :class="{
-            'is-plugin-disabled': app.status === 'disabled',
-            'has-badges': app.recommended || app.has_upgrade || app.status === 'disabled',
-        }"
+        :class="{ 'is-plugin-disabled': app.status === 'disabled' }"
         @click="onCardClick"
     >
         <div v-if="app.recommended || app.has_upgrade || app.status === 'disabled'" class="ap-badges">
@@ -148,14 +145,11 @@ const onCardClick = () => {
     &.is-plugin-disabled {
         opacity: 0.6;
     }
-    &.has-badges {
-        padding-top: 36px;
-    }
 
     .ap-badges {
         position: absolute;
-        top: 8px;
-        left: 8px;
+        top: 0;
+        left: 0;
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
@@ -167,20 +161,22 @@ const onCardClick = () => {
     .ap-upgrade,
     .ap-disabled-badge {
         padding: 2px 8px;
-        border-radius: 4px;
         font-size: 11px;
         font-weight: 600;
         line-height: 1.4;
     }
     .ap-rec {
+        border-radius: 4px 0 4px 0;
         background: #fef3c7;
         color: #d97706;
     }
     .ap-upgrade {
+        border-radius: 4px;
         background: #dbeafe;
         color: #2563eb;
     }
     .ap-disabled-badge {
+        border-radius: 4px;
         background: #f3f4f6;
         color: #6b7280;
     }

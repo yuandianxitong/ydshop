@@ -263,17 +263,17 @@ const handleSaveSettings = async () => {
         </el-table-column>
         <el-table-column prop="exp_type_name" label="业务类型" min-width="110" />
         <el-table-column prop="template_size_label" label="模版样式" min-width="120" />
-        <el-table-column label="邮费方式" width="90">
+        <el-table-column label="邮费方式" width="110">
           <template #default="{ row }">{{ payTypeLabel(row.pay_type) }}</template>
         </el-table-column>
-        <el-table-column label="上门揽件" width="90">
+        <el-table-column label="上门揽件" width="110">
           <template #default="{ row }">
             <el-tag :type="row.need_pickup === 1 ? 'success' : 'info'" size="small" effect="plain">
               {{ row.need_pickup === 1 ? '是' : '否' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="sort" label="排序" width="70" />
+        <el-table-column prop="sort" label="排序" width="100" />
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-switch
@@ -284,7 +284,7 @@ const handleSaveSettings = async () => {
             />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button text type="danger" size="small" @click="handleDelete(row.id, row.name)">
