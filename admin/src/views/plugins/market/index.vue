@@ -73,32 +73,27 @@
 
         <el-dialog
             v-model="connectVisible"
-            title="连接官网账号"
+            title="连接元点官方市场账号"
             width="440px"
             :destroy-on-close="true"
-            @closed="resetConnect"
+            :close-on-click-modal="false"
         >
-            <el-form :model="connectForm" label-width="72px" @submit.prevent="connect">
-                <el-form-item label="账号">
-                    <el-input v-model="connectForm.account" placeholder="官网手机号 / 账号" autocomplete="username" />
-                </el-form-item>
-                <el-form-item label="密码">
-                    <el-input v-model="connectForm.password" type="password" placeholder="官网登录密码" show-password autocomplete="current-password" />
-                </el-form-item>
-            </el-form>
+            <p class="connect-lead">尚未连接元点官方市场账号，连接后可验证已购组件并一键安装。</p>
+            <p class="connect-hint">将打开元点官方市场的登录授权页面，授权后自动完成连接与权益同步，全程无需填写任何凭证。</p>
             <template #footer>
                 <el-button @click="connectVisible = false">取消</el-button>
-                <el-button type="primary" :loading="connecting" @click="connect">连接</el-button>
+                <el-button type="primary" :loading="connecting" @click="connect">连接账号并继续</el-button>
             </template>
         </el-dialog>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pluginApi } from '@/api/plugin'
+import { useMarketplaceOauth } from '@/composables/useMarketplaceOauth'
 import LocalUpload from './components/LocalUpload.vue'
 
 const uploadVisible = ref(false)
@@ -110,8 +105,12 @@ const error = ref('')
 const list = ref<Array<Record<string, any>>>([])
 const connected = ref(false)
 const account = ref<{ account?: string; nickname?: string } | null>(null)
-const connectForm = ref({ account: '', password: '' })
 const router = useRouter()
+const { openPopup, awaitAuthCode } = useMarketplaceOauth()
+let activePopup: Window | null = null
+
+const callbackUrl =
+    window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, '') + '/marketplace/oauth-callback'
 
 const accountLabel = computed(() => {
     const nick = account.value?.nickname || account.value?.account || '已连接'
@@ -141,20 +140,38 @@ const openBuy = (item: Record<string, any>) => {
 }
 
 const connect = async () => {
-    if (!connectForm.value.account || !connectForm.value.password) {
-        ElMessage.warning('请输入官网账号和密码')
+    const popup = openPopup()
+    if (!popup) {
+        ElMessage.error('请允许浏览器弹出窗口后重试')
         return
     }
+    activePopup = popup
     connecting.value = true
     try {
-        await pluginApi.connectOfficial({ ...connectForm.value })
+        const res = await pluginApi.initiateConnect(callbackUrl)
+        const intent = (res as any)?.data ?? res
+        const authorizeUrl = String(intent?.authorize_url || '')
+        if (!authorizeUrl) {
+            popup.close()
+            throw new Error('未返回授权地址')
+        }
+        const { state, code } = await awaitAuthCode(popup, authorizeUrl)
+        await pluginApi.exchangeConnect({ state, code })
         ElMessage.success('已连接官网账号')
         connectVisible.value = false
         await loadCatalog()
     } catch (e: any) {
-        ElMessage.error(e?.message || '连接失败')
+        try {
+            popup.close()
+        } catch {
+            /* 窗口可能已被关闭 */
+        }
+        if (e?.message && e.message !== 'cancel') {
+            ElMessage.error(e.message || '连接失败')
+        }
     } finally {
         connecting.value = false
+        activePopup = null
     }
 }
 
@@ -189,9 +206,11 @@ const install = async (item: Record<string, any>) => {
     }
 }
 
-const resetConnect = () => {
-    connectForm.value = { account: '', password: '' }
-}
+watch(connectVisible, (visible) => {
+    if (!visible && connecting.value && activePopup && !activePopup.closed) {
+        activePopup.close()
+    }
+})
 
 const onInstalled = () => {
     uploadVisible.value = false
@@ -229,6 +248,18 @@ onMounted(loadCatalog)
     font-size: 13px;
     color: var(--el-text-color-regular);
     padding: 0 8px;
+}
+.connect-lead {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    font-weight: 500;
+}
+.connect-hint {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.6;
 }
 .market-grid {
     min-height: 240px;

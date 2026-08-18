@@ -5,7 +5,7 @@
 ## [Unreleased]
 
 ### Added
-- 插件市场支持连接官网账号，按已购权益一键下载并安装 Shop 组件
+- 插件市场连接官网改为弹窗授权（与 SaaS 共用实例 PKCE），按已购权益一键下载并安装 Shop 组件
 - `plugin:pack` 将付费组件对应的 admin / PC / uniapp 页面打入 zip 的 `_frontend/`，安装时自动部署；支持 `--all`
 
 ### Changed

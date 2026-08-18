@@ -26,7 +26,8 @@ export default function createPermissionGuard(router: Router): void {
         PageEnum.LOGIN,
         PageEnum.ERROR_403,
         PageEnum.ERROR_404,
-        PageEnum.ERROR_500
+        PageEnum.ERROR_500,
+        PageEnum.MARKETPLACE_OAUTH_CALLBACK
     ]
 
     router.beforeEach(async (to, from, next) => {

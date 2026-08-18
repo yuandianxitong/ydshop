@@ -33,6 +33,11 @@ export const constantRoutes: Array<RouteRecordRaw> = [
         path: PageEnum.LOGIN,
         component: () => import('@/views/login/index.vue'),
         meta: { hidden: true }
+    },
+    {
+        path: PageEnum.MARKETPLACE_OAUTH_CALLBACK,
+        component: () => import('@/views/plugins/market/oauth-callback.vue'),
+        meta: { hidden: true }
     }
 ]
 

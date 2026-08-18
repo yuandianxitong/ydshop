@@ -6,7 +6,7 @@ namespace core\marketplace;
 use core\utils\Encryption;
 
 /**
- * Encrypted official-site user session (JWT) for Shop marketplace download.
+ * Encrypted official-site instance token for Shop marketplace download.
  */
 class OfficialAccountSession
 {
@@ -26,8 +26,9 @@ class OfficialAccountSession
         }
         file_put_contents(self::filePath(), json_encode([
             'token'        => Encryption::encrypt($token),
-            'account'      => (string) ($user['mobile'] ?? $user['nickname'] ?? ''),
-            'nickname'     => (string) ($user['nickname'] ?? ''),
+            'kind'         => 'instance',
+            'account'      => (string) ($user['email'] ?? $user['mobile'] ?? $user['nickname'] ?? $user['name'] ?? ''),
+            'nickname'     => (string) ($user['name'] ?? $user['nickname'] ?? ''),
             'user_id'      => (int) ($user['id'] ?? 0),
             'connected_at' => date('c'),
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
@@ -77,6 +78,13 @@ class OfficialAccountSession
             return null;
         }
         $raw = json_decode((string) file_get_contents($path), true);
-        return is_array($raw) ? $raw : null;
+        if (!is_array($raw)) {
+            return null;
+        }
+        if (($raw['kind'] ?? '') !== 'instance') {
+            self::clear();
+            return null;
+        }
+        return $raw;
     }
 }

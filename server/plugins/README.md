@@ -33,6 +33,6 @@ cd server && php think plugin:pack flash_sale
 cd server && php think plugin:pack --all --force
 ```
 
-Shop 后台「插件市场」可连接官网账号，按 entitlements 一键下载安装；也可继续本地上传 zip。
+Shop 后台「插件市场」通过官网授权页连接账号（实例 PKCE），按 entitlements 一键下载安装；也可继续本地上传 zip。
 
 发版到官网：把 `runtime/plugin-packages/<code>-<version>.zip` 上传到 Site 管理后台对应应用的「版本」并发布（`market_apps.runtime=shop`）。

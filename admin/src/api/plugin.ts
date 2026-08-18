@@ -75,8 +75,16 @@ export const pluginApi = {
             '/adminapi/market/session',
         )
     },
-    connectOfficial(data: { account: string; password: string }) {
-        return myRequest.post<{ connected: boolean; account?: string; nickname?: string }>('/adminapi/market/connect', data)
+    initiateConnect(callbackUrl: string) {
+        return myRequest.post<{ authorize_url: string; state: string }>('/adminapi/market/connect/initiate', {
+            callback_url: callbackUrl,
+        })
+    },
+    exchangeConnect(data: { state: string; code: string }) {
+        return myRequest.post<{ connected: boolean; account?: string; nickname?: string }>(
+            '/adminapi/market/connect/exchange',
+            data
+        )
     },
     disconnectOfficial() {
         return myRequest.post<void>('/adminapi/market/disconnect')

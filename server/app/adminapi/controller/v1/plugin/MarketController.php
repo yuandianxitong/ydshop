@@ -3,16 +3,17 @@ declare(strict_types=1);
 
 namespace app\adminapi\controller\v1\plugin;
 
+use app\service\plugin\OfficialConnectService;
 use app\service\plugin\PluginService;
 use core\attribute\Permission;
 use core\base\Controller;
 use core\marketplace\OfficialAccountSession;
-use core\marketplace\OfficialCatalogClient;
 use think\Response;
 
 class MarketController extends Controller
 {
     protected PluginService $pluginService;
+    protected OfficialConnectService $officialConnectService;
 
     /**
      * 官方商城组件目录（runtime=shop）。
@@ -31,17 +32,22 @@ class MarketController extends Controller
     }
 
     #[Permission('plugin.market')]
-    public function connect(): Response
+    public function initiate(): Response
     {
-        $account = trim((string) $this->request->post('account', ''));
-        $password = (string) $this->request->post('password', '');
-        if ($account === '' || $password === '') {
-            return $this->error('请输入官网账号和密码');
+        $callback = trim((string) $this->request->post('callback_url', ''));
+        if ($callback === '') {
+            return $this->error('缺少 callback_url');
         }
-        $login = (new OfficialCatalogClient())->login($account, $password);
-        OfficialAccountSession::save($login['token'], $login['user_info']);
-        $this->pluginService->syncOfficialEntitlements();
-        return $this->success('已连接官网账号', OfficialAccountSession::publicInfo());
+        return $this->success('ok', $this->officialConnectService->initiate($callback));
+    }
+
+    #[Permission('plugin.market')]
+    public function exchange(): Response
+    {
+        $state = (string) $this->request->post('state', '');
+        $code = (string) $this->request->post('code', '');
+        $info = $this->officialConnectService->exchange($state, $code);
+        return $this->success('已连接官网账号', $info);
     }
 
     #[Permission('plugin.market')]

@@ -12,6 +12,7 @@ export default function createInitGuard(router: Router): void {
         // 只在非登录页面且没有配置且没有在加载中时才获取配置，避免循环
         if (
             to.path !== '/login' &&
+            to.path !== '/marketplace/oauth-callback' &&
             Object.keys(appStore.config).length === 0 &&
             !appStore.isLoadingConfig
         ) {

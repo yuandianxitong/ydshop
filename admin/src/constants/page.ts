@@ -8,5 +8,6 @@ export enum PageEnum {
     //服务器错误页面
     ERROR_500 = '/500',
     INDEX = '/',
-    REDIRECT = '/redirect'
+    REDIRECT = '/redirect',
+    MARKETPLACE_OAUTH_CALLBACK = '/marketplace/oauth-callback'
 }

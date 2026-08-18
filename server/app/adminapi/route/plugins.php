@@ -13,7 +13,8 @@ Route::group('plugins', function () {
 Route::group('market', function () {
     Route::get('catalog', 'v1.plugin.MarketController/catalog');
     Route::get('session', 'v1.plugin.MarketController/session');
-    Route::post('connect', 'v1.plugin.MarketController/connect');
+    Route::post('connect/initiate', 'v1.plugin.MarketController/initiate');
+    Route::post('connect/exchange', 'v1.plugin.MarketController/exchange');
     Route::post('disconnect', 'v1.plugin.MarketController/disconnect');
     Route::post('install', 'v1.plugin.MarketController/install');
     Route::post('upload', 'v1.plugin.MarketController/upload');

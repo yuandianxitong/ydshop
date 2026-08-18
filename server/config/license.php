@@ -4,8 +4,12 @@
 // +----------------------------------------------------------------------
 
 return [
-    // 官网授权中心
+    // 官网授权中心（服务器到服务器：开放 API）
     'site_base_url' => rtrim((string) env('LICENSE_SITE_BASE_URL', 'https://www.dev007.cn'), '/'),
+
+    // 浏览器授权页基址。留空 = 与 site_base_url 相同。
+    // 本地 Site 前端若挂在 /pc，则 LICENSE_SITE_WEB_BASE=http://localhost:xxxx/pc
+    'site_web_base_url' => rtrim((string) env('LICENSE_SITE_WEB_BASE', ''), '/'),
 
     // 产品标识，须与 Site products.slug 一致
     'product_slug' => (string) env('LICENSE_PRODUCT_SLUG', 'shop'),

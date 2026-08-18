@@ -6,13 +6,19 @@ namespace core\marketplace;
 use core\exception\BusinessException;
 
 /**
- * 浏览官网 Shop 组件目录（公开接口，无需实例 token）。
+ * 官网 Shop 组件目录（公开）与实例授权后的权益/下载。
  */
 class OfficialCatalogClient
 {
     public function siteBase(): string
     {
         return rtrim((string) config('license.site_base_url', 'https://www.dev007.cn'), '/');
+    }
+
+    public function webBase(): string
+    {
+        $web = rtrim((string) config('license.site_web_base_url', ''), '/');
+        return $web !== '' ? $web : $this->siteBase();
     }
 
     /**
@@ -59,23 +65,20 @@ class OfficialCatalogClient
     }
 
     /**
-     * @return array{token: string, user_info: array<string, mixed>}
+     * @return array<string, mixed>
      */
-    public function login(string $account, string $password): array
+    public function exchangeCode(string $authCode, string $verifier, string $instanceUuid): array
     {
-        $r = $this->call($this->siteBase() . '/api/auth/login', 'POST', null, [
-            'account'  => $account,
-            'password' => $password,
+        $r = $this->call($this->siteBase() . '/api/open/instances/exchange-code', 'POST', null, [
+            'auth_code'     => $authCode,
+            'code_verifier' => $verifier,
+            'instance_uuid' => $instanceUuid,
         ]);
         $data = $r['data'] ?? [];
-        $token = (string) ($data['token'] ?? '');
-        if ($token === '') {
-            throw new BusinessException((string) ($r['message'] ?? '官网登录失败'), 401);
+        if (!is_array($data) || (string) ($data['access_token'] ?? '') === '') {
+            throw new BusinessException((string) ($r['message'] ?? '官网未返回实例凭证'), 502);
         }
-        return [
-            'token'     => $token,
-            'user_info' => is_array($data['user_info'] ?? null) ? $data['user_info'] : [],
-        ];
+        return $data;
     }
 
     /**
@@ -83,44 +86,58 @@ class OfficialCatalogClient
      */
     public function listEntitlements(string $token): array
     {
-        $all = [];
-        for ($page = 1; $page <= 20; $page++) {
-            $r = $this->call(
-                $this->siteBase() . '/api/commerce/entitlements?page=' . $page . '&size=50',
-                'GET',
-                $token
-            );
-            $payload = $r['data'] ?? [];
-            $list = $payload['list'] ?? [];
-            if (!is_array($list) || $list === []) {
-                break;
-            }
-            foreach ($list as $row) {
-                if (is_array($row)) {
-                    $all[] = $row;
-                }
-            }
-            $total = (int) ($payload['total'] ?? 0);
-            if ($total > 0 && count($all) >= $total) {
-                break;
-            }
-            if (count($list) < 50) {
-                break;
-            }
+        $r = $this->call($this->siteBase() . '/api/open/instances/entitlements', 'GET', $token);
+        $payload = $r['data'] ?? [];
+        if (isset($payload['list']) && is_array($payload['list'])) {
+            return array_values(array_filter($payload['list'], 'is_array'));
         }
-        return $all;
+        if (is_array($payload) && array_is_list($payload)) {
+            return array_values(array_filter($payload, 'is_array'));
+        }
+        return [];
     }
 
     /**
-     * Stream a purchased (or free entitled) zip to $destPath.
+     * Stream a purchased (or free entitled) zip to $destPath via instance download-token.
      *
      * @return array<string, string>
      */
     public function downloadApp(string $token, string $code, ?string $version, string $destPath): array
     {
-        $url = $this->siteBase() . '/api/commerce/apps/' . rawurlencode($code) . '/download';
-        if ($version !== null && $version !== '') {
-            $url .= '?version=' . rawurlencode($version);
+        $ver = $version !== null ? trim($version) : '';
+        if ($ver === '') {
+            foreach ($this->listEntitlements($token) as $ent) {
+                if ((string) ($ent['app_code'] ?? '') === $code) {
+                    $ver = (string) ($ent['latest_version'] ?? '');
+                    break;
+                }
+            }
+        }
+        if ($ver === '') {
+            $detail = $this->getApp($code);
+            $latest = $detail['latest_version'] ?? null;
+            if (is_array($latest)) {
+                $ver = (string) ($latest['version'] ?? '');
+            } elseif (is_string($latest)) {
+                $ver = $latest;
+            }
+        }
+        if ($ver === '') {
+            throw new BusinessException('官网未返回可安装版本', 404);
+        }
+
+        $issued = $this->call(
+            $this->siteBase() . '/api/open/market/apps/' . rawurlencode($code)
+            . '/versions/' . rawurlencode($ver) . '/download-token',
+            'POST',
+            $token
+        );
+        $url = (string) ($issued['data']['download_url'] ?? '');
+        if ($url === '') {
+            throw new BusinessException('官网未返回下载地址', 502);
+        }
+        if (!str_starts_with($url, 'http')) {
+            $url = $this->siteBase() . $url;
         }
         return $this->stream($url, $token, $destPath);
     }
