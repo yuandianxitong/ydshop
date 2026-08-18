@@ -11,6 +11,7 @@ use app\model\order\OrderRefund;
 use app\model\user\User;
 use core\base\Repository;
 use core\cache\CacheableRepository;
+use core\plugin\HookManager;
 use think\Model as ThinkModel;
 
 /**
@@ -266,11 +267,7 @@ class EcommerceDashboardRepository extends Repository
 
     private function countPendingDistributionWithdrawals(): int
     {
-        $class = \plugins\distribution\model\DistributionWithdrawal::class;
-        if (!class_exists($class)) {
-            return 0;
-        }
-        return (int) $class::where('status', 'pending')->count();
+        return (int) HookManager::apply('finance.pending_withdrawal_count', [], 0);
     }
 
     // ─────────────────────────────────────────────────────────────

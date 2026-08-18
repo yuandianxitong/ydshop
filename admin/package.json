@@ -4,6 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "sync": "node ../scripts/sync-plugins.mjs --target admin",
+        "predev": "npm run sync",
+        "prebuild": "npm run sync",
         "dev": "vite",
         "preview": "vite preview --port 4173",
         "build": "vue-tsc --noEmit & vite build",

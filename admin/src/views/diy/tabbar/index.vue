@@ -31,7 +31,7 @@ const defaultItems: TabBarItem[] = [
   { name: '首页', path: '/pages/index/index', icon: '', activeIcon: '' },
   { name: '分类', path: '/pages/category/index', icon: '', activeIcon: '' },
   { name: '购物车', path: '/pages/cart/index', icon: '', activeIcon: '' },
-  { name: '我的', path: '/pages/user/index', icon: '', activeIcon: '' },
+  { name: '我的', path: '/pages/my/index', icon: '', activeIcon: '' },
 ]
 
 // json 类型配置后端会对 config_value 再做一次 json_encode；
@@ -196,7 +196,7 @@ onMounted(loadConfig)
                   </div>
                   <div class="ti-field">
                     <span class="ti-field-label">链接</span>
-                    <LinkPicker v-model="item.path" />
+                    <LinkPicker v-model="item.path" platform="uniapp" />
                   </div>
                 </div>
               </div>

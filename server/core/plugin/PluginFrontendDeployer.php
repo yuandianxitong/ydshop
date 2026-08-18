@@ -31,9 +31,33 @@ class PluginFrontendDeployer
         return $count;
     }
 
+    /**
+     * 软链同步插件前端（不再整树拷贝进宿主源码）。
+     */
+    public static function deployFromPluginDir(string $code): int
+    {
+        $sync = PluginFrontendSync::sync($code);
+        PluginPagesJsonMerger::merge($code);
+        return $sync['count'];
+    }
+
     public static function remove(string $code): void
     {
+        PluginPagesJsonMerger::unmerge($code);
         $root = self::projectRoot();
+        $pluginDir = rtrim(PluginManager::pluginsPath() . $code, '/\\') . DIRECTORY_SEPARATOR;
+        $removed = false;
+        foreach (['admin', 'pc', 'uniapp'] as $tree) {
+            $src = $pluginDir . $tree;
+            if (!is_dir($src)) {
+                continue;
+            }
+            $removed = true;
+            self::removeCopiedTree($src, $root . DIRECTORY_SEPARATOR . $tree, $tree . '/');
+        }
+        if ($removed) {
+            return;
+        }
         foreach (PluginFrontendMap::relativePaths($code) as $rel) {
             if (!PluginFrontendMap::isAllowedRelative($rel)) {
                 continue;
@@ -42,7 +66,23 @@ class PluginFrontendDeployer
         }
     }
 
-    private static function copyTree(string $from, string $to): int
+    private static function deployMapped(string $code): int
+    {
+        $root = self::projectRoot();
+        $count = 0;
+        foreach (PluginFrontendMap::relativePaths($code) as $rel) {
+            if (!PluginFrontendMap::isAllowedRelative($rel)) {
+                continue;
+            }
+            $abs = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+            if (is_file($abs) || is_dir($abs)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    private static function copyTree(string $from, string $to, string $relPrefix = ''): int
     {
         $count = 0;
         $items = new \RecursiveIteratorIterator(
@@ -54,7 +94,11 @@ class PluginFrontendDeployer
                 continue;
             }
             $rel = str_replace('\\', '/', substr($item->getPathname(), strlen($from) + 1));
-            if (!PluginFrontendMap::isAllowedRelative($rel)) {
+            $check = $relPrefix . $rel;
+            if ($relPrefix !== '' && !PluginFrontendMap::isAllowedRelative($check)) {
+                continue;
+            }
+            if ($relPrefix === '' && !PluginFrontendMap::isAllowedRelative($rel)) {
                 continue;
             }
             $dest = $to . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
@@ -77,6 +121,27 @@ class PluginFrontendDeployer
             $count++;
         }
         return $count;
+    }
+
+    private static function removeCopiedTree(string $from, string $to, string $relPrefix): void
+    {
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($from, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isLink() || $item->isDir()) {
+                continue;
+            }
+            $rel = str_replace('\\', '/', substr($item->getPathname(), strlen($from) + 1));
+            if (!PluginFrontendMap::isAllowedRelative($relPrefix . $rel)) {
+                continue;
+            }
+            $dest = $to . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+            if (is_file($dest) || is_link($dest)) {
+                @unlink($dest);
+            }
+        }
     }
 
     private static function removePath(string $path): void

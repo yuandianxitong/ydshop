@@ -16,6 +16,8 @@ $commands = [
     \app\command\PluginUpgradeCommand::class,
     \app\command\PluginPackCommand::class,
     \app\command\PluginEnrollBundled::class,
+    \app\command\PluginFrontendDeployCommand::class,
+    \app\command\FrontendBuildWorkCommand::class,
     \app\command\UserGroupRefreshCommand::class,
     \app\command\UserTagRefreshCommand::class,
     \app\command\PickupScanTimeoutCommand::class,
@@ -28,16 +30,8 @@ $commands = [
     \app\command\LicenseHeartbeatCommand::class,
 ];
 
-$optionalCommands = [
-    dirname(__DIR__) . '/plugins/distribution/command/DistributionSettleCommand.php'
-        => \plugins\distribution\command\DistributionSettleCommand::class,
-    dirname(__DIR__) . '/plugins/distribution/command/DistributionCommissionReconcileCommand.php'
-        => \plugins\distribution\command\DistributionCommissionReconcileCommand::class,
-    dirname(__DIR__) . '/plugins/group_buy/command/GroupBuyExpireCommand.php'
-        => \plugins\group_buy\command\GroupBuyExpireCommand::class,
-];
-foreach ($optionalCommands as $file => $class) {
-    if (is_file($file)) {
+foreach (\core\plugin\PluginManager::discoverConsoleCommands() as $class) {
+    if (class_exists($class)) {
         $commands[] = $class;
     }
 }

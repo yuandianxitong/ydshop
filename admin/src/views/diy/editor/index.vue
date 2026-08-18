@@ -92,7 +92,7 @@ const {
     components, platform, pageType, undoStack, redoStack, undo, redo, setComponents,
     pageTitle, pageSettings,
     pageId, previewMode, previewMeta,
-    enterPreview, exitPreview, reloadPage,
+    enterPreview, exitPreview, reloadPage, loadCatalog,
 } = useEditor()
 
 const saving = ref(false)
@@ -153,6 +153,7 @@ async function loadPage() {
         res.data.page_settings || { background_color: '', background_image: '' }
     )
     refreshSnapshot()
+    await loadCatalog()
 }
 
 async function handleSave() {

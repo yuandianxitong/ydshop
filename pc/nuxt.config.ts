@@ -33,6 +33,9 @@ export default defineNuxtConfig({
 
   vite: {
     server: {
+      fs: {
+        allow: ['..', '../server/plugins'],
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:9001',

@@ -8,6 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+src/views/plugin-apps/
+src/api/plugins/
+src/locales/plugins/
+src/components/plugins/
+src/.plugin-sync-manifest.json
 .DS_Store
 dist
 dist-ssr

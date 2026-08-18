@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\command;
 
 use app\model\plugin\Plugin;
+use core\plugin\PluginFrontendDeployer;
 use core\plugin\PluginManager;
 use core\plugin\PluginManifest;
 use core\plugin\PluginMigrationRunner;
@@ -95,36 +96,51 @@ class PluginEnrollBundled extends Command
 
         $total   = 0;
         $skipped = 0;
-        foreach ($pending as $manifest) {
-            if (Plugin::where('code', $manifest->code)->find()) {
-                // Already enrolled: apply pending semver updates only (tip adopt if needed).
-                try {
-                    $applied = PluginMigrationRunner::run($manifest->code);
-                    if ($applied) {
-                        $output->info("[{$manifest->code}] 已入册，应用升级: " . implode(', ', $applied));
-                    } else {
-                        $output->info("[{$manifest->code}] 已入册，跳过");
+        PluginManager::$runFrontendQueue = false;
+        try {
+            foreach ($pending as $manifest) {
+                if (Plugin::where('code', $manifest->code)->find()) {
+                    // Already enrolled: apply pending semver updates only (tip adopt if needed).
+                    try {
+                        $applied = PluginMigrationRunner::run($manifest->code);
+                        if ($applied) {
+                            $output->info("[{$manifest->code}] 已入册，应用升级: " . implode(', ', $applied));
+                        } else {
+                            $output->info("[{$manifest->code}] 已入册，跳过");
+                        }
+                    } catch (\Throwable $e) {
+                        $output->warning("[{$manifest->code}] 升级失败：" . $e->getMessage());
                     }
-                } catch (\Throwable $e) {
-                    $output->warning("[{$manifest->code}] 升级失败：" . $e->getMessage());
+                    $skipped++;
+                    continue;
                 }
-                $skipped++;
-                continue;
+
+                // Fresh enroll: install.sql + tip semver baseline via PluginManager.
+                // Do NOT call PluginMigrationRunner before the plugins row exists —
+                // that would treat from=0.0.0 and re-apply all updates incorrectly.
+                try {
+                    PluginManager::install($manifest, Plugin::SOURCE_BUNDLED);
+                    $total++;
+                    $output->info("[{$manifest->code}] 已入册 v{$manifest->version}");
+                } catch (\Throwable $e) {
+                    $output->error("[{$manifest->code}] 失败：" . $e->getMessage());
+                }
             }
 
-            // Fresh enroll: install.sql + tip semver baseline via PluginManager.
-            // Do NOT call PluginMigrationRunner before the plugins row exists —
-            // that would treat from=0.0.0 and re-apply all updates incorrectly.
-            try {
-                PluginManager::install($manifest, Plugin::SOURCE_BUNDLED);
-                $total++;
-                $output->info("[{$manifest->code}] 已入册 v{$manifest->version}");
-            } catch (\Throwable $e) {
-                $output->error("[{$manifest->code}] 失败：" . $e->getMessage());
+            foreach ($pending as $manifest) {
+                try {
+                    $n = PluginFrontendDeployer::deployFromPluginDir($manifest->code);
+                    $output->info("[{$manifest->code}] 前端部署 {$n} 个文件");
+                } catch (\Throwable $e) {
+                    $output->warning("[{$manifest->code}] 前端部署失败：" . $e->getMessage());
+                }
             }
+        } finally {
+            PluginManager::$runFrontendQueue = true;
         }
 
         $output->info("完成。本次入册 $total 个插件，跳过 $skipped 个。");
+        $output->writeln('<comment>已软链前端。开发机重启 Vite；生产到「云编译」重建 Admin/PC。</comment>');
         return 0;
     }
 }

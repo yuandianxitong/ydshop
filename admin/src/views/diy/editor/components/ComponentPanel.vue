@@ -24,12 +24,32 @@ import { computed } from 'vue'
 import { componentDefs, useEditor } from '../useEditor'
 import type { ComponentDef } from '../useEditor'
 
-const { addComponent } = useEditor()
+const { addComponent, catalogWidgets, catalogLoaded } = useEditor()
+
+const visibleDefs = computed(() => {
+    if (!catalogLoaded.value) {
+        return componentDefs
+    }
+    const localByType = new Map(componentDefs.map(d => [d.type, d]))
+    return catalogWidgets.value.map((w) => {
+        const local = localByType.get(w.type)
+        return {
+            type: w.type,
+            label: w.label || local?.label || w.type,
+            icon: w.icon || local?.icon || 'i-lucide:box',
+            group: w.group || local?.group || '营销组件',
+            defaultProps: {
+                ...(local?.defaultProps || {}),
+                ...(w.default_props || {}),
+            },
+        } as ComponentDef
+    })
+})
 
 const groupedDefs = computed(() => {
     const groups: { label: string; items: ComponentDef[] }[] = []
     const map = new Map<string, ComponentDef[]>()
-    for (const def of componentDefs) {
+    for (const def of visibleDefs.value) {
         if (!map.has(def.group)) map.set(def.group, [])
         map.get(def.group)!.push(def)
     }

@@ -51,6 +51,42 @@ export interface DiyPageVersion {
     created_at: string
 }
 
+export interface DiyCatalogLinkItem {
+    label: string
+    path: string
+    need_select?: boolean
+    select_type?: string | null
+}
+
+export interface DiyCatalogLinkGroup {
+    key: string
+    label: string
+    items: DiyCatalogLinkItem[]
+}
+
+export interface DiyCatalogWidget {
+    type: string
+    label: string
+    icon: string
+    group: string
+    default_props: Record<string, any>
+}
+
+export interface DiyCatalogEntry {
+    slot: string
+    label: string
+    path: string
+    platform: string
+}
+
+export interface DiyCatalog {
+    platform: string
+    links: DiyCatalogLinkGroup[]
+    widgets: DiyCatalogWidget[]
+    entries: DiyCatalogEntry[]
+    public_paths: string[]
+}
+
 export const diyApi = {
     getPageList(params?: { platform?: string; page_type?: string; keyword?: string; page?: number; limit?: number }) {
         return myRequest.get<{ list: DiyPageInfo[]; pagination: any }>('/adminapi/diy/page', { params })
@@ -87,5 +123,8 @@ export const diyApi = {
     },
     restoreVersion(pageId: number, vid: number) {
         return myRequest.post<void>(`/adminapi/diy/page/${pageId}/versions/${vid}/restore`)
+    },
+    getCatalog(platform: 'uniapp' | 'pc' = 'uniapp') {
+        return myRequest.get<DiyCatalog>('/adminapi/diy/catalog', { params: { platform } })
     },
 }

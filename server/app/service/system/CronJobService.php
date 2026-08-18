@@ -23,14 +23,11 @@ class CronJobService extends Service
         'payment:reconcile' => '支付成功消费者补偿重放',
         'refund:reconcile' => '退款渠道状态补偿查询',
         'finance:reconcile' => '财务流水最终一致性对账',
-        'distribution:reconcile-refunds' => '分销退款佣金冲正补偿',
-        'distribution:settle' => '分销佣金生成与到期结算',
         'member:reconcile-order-rewards' => '订单会员权益与退款冲正补偿',
         'order:auto-cancel' => '超时未支付订单自动取消',
         'order:auto-confirm' => '发货订单超期自动确认收货',
         'order:auto-review' => '完成订单超期自动好评',
         'pickup:scan-timeout' => '自提订单超时状态扫描',
-        'group-buy:expire' => '拼团超时未成团自动过期',
         'user-tag:refresh' => '自动更新用户标签规则重算',
         'user-group:refresh' => '自动更新用户分群规则重算',
     ];
@@ -41,7 +38,7 @@ class CronJobService extends Service
     public function getAllowedCommands(): array
     {
         $list = [];
-        foreach (self::ALLOWED_COMMANDS as $name => $desc) {
+        foreach ($this->allowedCommandMap() as $name => $desc) {
             $list[] = ['name' => $name, 'description' => $desc];
         }
         return $list;
@@ -192,6 +189,12 @@ class CronJobService extends Service
         return $this->repo->clearLogs($cronJobId, $keepDays);
     }
 
+    /** @return array<string, string> */
+    protected function allowedCommandMap(): array
+    {
+        return array_merge(self::ALLOWED_COMMANDS, \core\plugin\PluginManager::cronCommandMap());
+    }
+
     /**
      * 校验命令是否在白名单中
      *
@@ -205,7 +208,7 @@ class CronJobService extends Service
         }
 
         $mainCommand = strtok($command, " \t") ?: $command;
-        if (!array_key_exists($mainCommand, self::ALLOWED_COMMANDS)) {
+        if (!array_key_exists($mainCommand, $this->allowedCommandMap())) {
             throw new BusinessException(lang('business.cron_command_not_allowed') . ': ' . $mainCommand);
         }
     }

@@ -8,6 +8,7 @@ import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 import UnoCSS from "unocss/vite";
 import { resolve } from "path";
 import { readdirSync, existsSync } from "fs";
+import { searchForWorkspaceRoot } from "vite";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
 
 // 动态解析 Element Plus 所有组件样式路径，避免开发模式下依赖重优化导致页面刷新
@@ -59,6 +60,9 @@ export default defineConfig(({ mode }: ConfigEnv) => {
             host: "0.0.0.0",
             port: +env.VITE_APP_PORT || 5174,
             open: true,
+            fs: {
+                allow: [searchForWorkspaceRoot(process.cwd()), resolve(__dirname, "../server/plugins")],
+            },
             proxy: {
                 // 代理 /adminapi 的请求到后端API
                 '/adminapi': {
@@ -139,8 +143,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         },
 
         build: {
-            // 构建产物输出到 server/public/admin/，部署时无需手动复制
-            outDir: resolve(__dirname, '../server/public/admin'),
+            // BUILD_TMP=1 时输出到 public/admin.build-tmp，供 PluginBuilder 原子切换
+            outDir: resolve(
+                __dirname,
+                process.env.BUILD_TMP === '1' ? '../server/public/admin.build-tmp' : '../server/public/admin'
+            ),
             emptyOutDir: true,
             chunkSizeWarningLimit: 2000,
             minify: "terser",

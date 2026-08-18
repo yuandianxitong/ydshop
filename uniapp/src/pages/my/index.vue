@@ -109,9 +109,14 @@
           <text class="card__title">常用功能</text>
         </view>
         <view class="func-grid">
-          <view v-if="hasDistribution" class="func-item" @tap="goAuthPage('/modules/distribution/pages/index')">
-            <d-icon name="diagram" size="48rpx" color="#ff9900" />
-            <text class="func-item__text">分销中心</text>
+          <view
+            v-for="entry in pluginEntries"
+            :key="entry.path"
+            class="func-item"
+            @tap="goAuthPage(entry.path)"
+          >
+            <d-icon :name="entryIcon(entry.label)" size="48rpx" :color="entryColor(entry.label)" />
+            <text class="func-item__text">{{ entry.label }}</text>
           </view>
           <view class="func-item" @tap="goAuthPage('/modules/user/pages/balance')">
             <d-icon name="wallet" size="48rpx" color="#2979ff" />
@@ -127,18 +132,6 @@
           <view class="func-item" @tap="goAuthPage('/modules/address/pages/list')">
             <d-icon name="location" size="48rpx" color="#19be6b" />
             <text class="func-item__text">收货地址</text>
-          </view>
-          <view class="func-item" @tap="goAuthPage('/modules/marketing/pages/coupon')">
-            <d-icon name="ticket" size="48rpx" color="#7c4dff" />
-            <text class="func-item__text">优惠券</text>
-          </view>
-          <view class="func-item" @tap="goAuthPage('/modules/user/pages/sign')">
-            <d-icon name="time" size="48rpx" color="#71717a" />
-            <text class="func-item__text">签到</text>
-          </view>
-          <view class="func-item" @tap="goAuthPage('/modules/marketing/pages/points-mall')">
-            <d-icon name="tag" size="48rpx" color="#71717a" />
-            <text class="func-item__text">积分商城</text>
           </view>
           <view class="func-item" @tap="goAuthPage('/modules/user/pages/edit-profile')">
             <d-icon name="user" size="48rpx" color="#2979ff" />
@@ -179,10 +172,25 @@ const { themePageStyle, navBg, navText } = useThemePageStyle()
 
 const userStore = useUserStore()
 const appStore = useAppStore()
-const hasDistribution = computed(() => {
-  const plugins = appStore.config?.installed_plugins
-  return Array.isArray(plugins) && plugins.includes('distribution')
+const pluginEntries = computed(() => {
+  const list = appStore.config?.plugin_entries
+  if (!Array.isArray(list)) return []
+  return list.filter((e: any) => e?.slot === 'user.functions' && e?.platform === 'uniapp' && e?.path)
 })
+
+function entryIcon(label: string): string {
+  if (label.includes('分销')) return 'diagram'
+  if (label.includes('券')) return 'ticket'
+  if (label.includes('签到')) return 'time'
+  if (label.includes('积分')) return 'tag'
+  return 'apps'
+}
+
+function entryColor(label: string): string {
+  if (label.includes('分销')) return '#ff9900'
+  if (label.includes('券')) return '#7c4dff'
+  return '#71717a'
+}
 
 const statusBarHeight = ref(0)
 const balanceInfo = ref({ balance: '0.00', points: 0, favorites: 0 })

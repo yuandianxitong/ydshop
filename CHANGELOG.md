@@ -5,10 +5,18 @@
 ## [Unreleased]
 
 ### Added
+- 插件安装改为软链同步宿主前端；生产入队 `frontend-builds` 云编译 admin/PC，开发机（`app_debug`）只软链不入队；官方已预置小程序页跳过 C 端编
+- 后台「云编译 / 客户端发布」：旁路 Node worker（`docker compose --profile build`）消费队列，`miniprogram-ci` 上传为渠道发布而非安装步骤
+- 装修目录接口 `GET /adminapi/diy/catalog`：链接/组件按已装插件下发；C 端入口与公开路径由 `plugin.json` 的 `c_end` 声明
+- 官方插件迁入 `app/adminapi` + `app/api` 分层；三端专属页面与 API 客户端进插件包，安装/入册拷回主工程
+- `php think plugin:frontend-deploy`；安装合并、卸载撤回 `pages.json`
+- 订单试算/下单/核销、装修 hydrate、资金对账改为 `HookManager`，核心不再写插件 FQCN
 - 插件市场连接官网改为弹窗授权（与 SaaS 共用实例 PKCE），按已购权益一键下载并安装 Shop 组件
 - `plugin:pack` 将付费组件对应的 admin / PC / uniapp 页面打入 zip 的 `_frontend/`，安装时自动部署；支持 `--all`
 
 ### Changed
+- 新装默认首页导航与 PC 顶栏不再预置秒杀/拼团/领券死链；插件命令改由 `plugin.json` `commands` 注册
+- 公开仓克隆后需执行 `plugin:enroll-bundled`；开发机 `admin`/`pc` 的 `predev` 会 sync 软链，生产等 `frontend-builds` 队列编完再硬刷新
 - PC 端头部 Logo / 网站名称改读系统配置 `site_logo`、`site_name`
 - PC 端商品详情数量改为购物车同款「减 / 输入 / 加」
 - PC 端我的订单恢复默认头尾，列表改为购物车式表格并展示全部商品

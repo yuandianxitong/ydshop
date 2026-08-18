@@ -1,44 +1,100 @@
 {
-  "code": "coupon",
-  "name": "优惠券",
-  "version": "1.0.0",
-  "description": "支持满减券 / 折扣券 / 兑换券，可分发到指定用户分组",
-  "author": "ydadmin",
-  "category": "core",
-  "parent_menu": "Marketing",
-  "palette": ["#f97316", "#ef4444"],
-  "recommended": true,
-
-  "requires": {
-    "php": ">=8.0",
-    "framework": ">=1.0.0",
-    "plugins": []
-  },
-
-  "menus": [
-    {
-      "name": "MarketingCoupon",
-      "title": "优惠券管理",
-      "path": "/marketing/coupon",
-      "component": "/marketing/coupon/index",
-      "icon": "i-lucide:ticket",
-      "permission": "coupon.list",
-      "sort": 1
+    "code": "coupon",
+    "name": "优惠券",
+    "version": "1.0.0",
+    "description": "支持满减券 / 折扣券 / 兑换券，可分发到指定用户分组",
+    "author": "ydadmin",
+    "category": "core",
+    "parent_menu": "Marketing",
+    "palette": [
+        "#f97316",
+        "#ef4444"
+    ],
+    "recommended": true,
+    "requires": {
+        "php": ">=8.0",
+        "framework": ">=1.0.0",
+        "plugins": []
+    },
+    "menus": [
+        {
+            "name": "MarketingCoupon",
+            "title": "优惠券管理",
+            "path": "/marketing/coupon",
+            "component": "/marketing/coupon/index",
+            "icon": "i-lucide:ticket",
+            "permission": "coupon.list",
+            "sort": 1
+        }
+    ],
+    "permissions": [
+        {
+            "name": "coupon.list",
+            "title": "优惠券列表",
+            "group": "marketing"
+        },
+        {
+            "name": "coupon.create",
+            "title": "新建优惠券",
+            "group": "marketing"
+        },
+        {
+            "name": "coupon.update",
+            "title": "编辑优惠券",
+            "group": "marketing"
+        },
+        {
+            "name": "coupon.delete",
+            "title": "删除优惠券",
+            "group": "marketing"
+        },
+        {
+            "name": "coupon.issue",
+            "title": "手动发放",
+            "group": "marketing"
+        }
+    ],
+    "routes": {
+        "admin": "app/adminapi/route.php",
+        "api": "app/api/route.php"
+    },
+    "hooks": [
+        "CouponDiscountHook",
+        "CouponAfterCreateHook",
+        "CouponReturnHook",
+        "CouponRebindHook",
+        "CouponDiyHydrateHook"
+    ],
+    "diy": {
+        "widgets": [
+            {
+                "type": "coupon-list",
+                "label": "优惠券",
+                "icon": "i-svg:diy-coupon",
+                "group": "营销组件",
+                "default_props": []
+            }
+        ],
+        "links": [
+            {
+                "category": "marketing",
+                "label": "优惠券中心",
+                "uniapp": "/modules/marketing/pages/coupon",
+                "pc": "/marketing/coupon"
+            }
+        ]
+    },
+    "c_end": {
+        "entries": [
+            {
+                "slot": "user.functions",
+                "label": "优惠券",
+                "uniapp": "/modules/marketing/pages/coupon",
+                "pc": "/marketing/coupon"
+            }
+        ],
+        "public_paths": [
+            "/modules/marketing/pages/coupon"
+        ]
     }
-  ],
-
-  "permissions": [
-    { "name": "coupon.list",   "title": "优惠券列表", "group": "marketing" },
-    { "name": "coupon.create", "title": "新建优惠券", "group": "marketing" },
-    { "name": "coupon.update", "title": "编辑优惠券", "group": "marketing" },
-    { "name": "coupon.delete", "title": "删除优惠券", "group": "marketing" },
-    { "name": "coupon.issue",  "title": "手动发放",   "group": "marketing" }
-  ],
-
-  "routes": {
-    "admin": "route/admin.php",
-    "api":   "route/api.php"
-  },
-
-  "hooks": ["CouponDiscountHook"]
 }

@@ -9,7 +9,7 @@ use app\repository\member\MemberRechargeOrderRepository;
 use app\repository\order\OrderOrderRepository;
 use app\service\common\ExcelExportService;
 use core\base\Service;
-use core\plugin\PluginManager;
+use core\plugin\HookManager;
 
 class FinanceService extends Service
 {
@@ -25,11 +25,8 @@ class FinanceService extends Service
         if (is_object($this->withdrawalRepo)) {
             return $this->withdrawalRepo;
         }
-        $class = \plugins\distribution\repository\DistributionWithdrawalRepository::class;
-        if (!PluginManager::isInstalled('distribution') || !class_exists($class)) {
-            return null;
-        }
-        return $this->withdrawalRepo = app($class);
+        $repo = HookManager::apply('finance.withdrawal_repo', [], null);
+        return $this->withdrawalRepo = is_object($repo) ? $repo : null;
     }
 
     /**

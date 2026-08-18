@@ -6,6 +6,7 @@ namespace app\repository\finance;
 use app\model\order\OrderRefund;
 use app\model\payment\PaymentOrder;
 use core\base\Repository;
+use core\plugin\HookManager;
 use think\Model as ThinkModel;
 
 /**
@@ -173,37 +174,11 @@ class FinanceReconcileRepository extends Repository
     /** @return array<int, array<string, mixed>> */
     public function getPaidWithdrawalsAfterId(int $afterId, int $limit): array
     {
-        $class = \plugins\distribution\model\DistributionWithdrawal::class;
-        if (!class_exists($class)) {
-            return [];
-        }
-        $withdrawalModel = new $class();
-
-        return $withdrawalModel
-            ->alias('withdrawal')
-            ->leftJoin(
-                'finance_transactions reconciled',
-                "reconciled.event_key = CONCAT('distribution.withdrawal.paid:', withdrawal.id)
-                AND reconciled.type = 'expense'
-                AND reconciled.biz_type = 'withdrawal'
-                AND (reconciled.biz_id = 0 OR reconciled.biz_id = withdrawal.id)
-                AND reconciled.biz_no = CONCAT('WD', withdrawal.id)
-                AND ROUND(reconciled.amount * 100) = ROUND(withdrawal.actual_amount * 100)
-                AND (reconciled.user_id = 0 OR reconciled.user_id = withdrawal.user_id)
-                AND (reconciled.payment_channel = '' OR reconciled.payment_channel = withdrawal.type)"
-            )
-            ->where('withdrawal.status', 'paid')
-            ->where('withdrawal.id', '>', max(0, $afterId))
-            ->whereNull('reconciled.id')
-            ->field([
-                'withdrawal.id', 'withdrawal.user_id', 'withdrawal.amount',
-                'withdrawal.actual_amount', 'withdrawal.fee',
-                'withdrawal.type', 'withdrawal.status', 'withdrawal.paid_at',
-            ])
-            ->order('withdrawal.id', 'asc')
-            ->limit($this->normalizeLimit($limit))
-            ->select()
-            ->toArray();
+        $rows = HookManager::apply('finance.reconcile_paid_withdrawals', [
+            'after_id' => $afterId,
+            'limit'    => $this->normalizeLimit($limit),
+        ], []);
+        return is_array($rows) ? $rows : [];
     }
 
     private function normalizeLimit(int $limit): int

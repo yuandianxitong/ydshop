@@ -69,10 +69,19 @@ const userInfo = ref<{ nickname: string; mobile: string; avatar: string } | null
 const balance = ref('0.00')
 const points = ref(0)
 
-const hasDistribution = computed(() => {
-  const plugins = appStore.config?.installed_plugins
-  return Array.isArray(plugins) && plugins.includes('distribution')
+const pluginEntries = computed(() => {
+  const list = appStore.config?.plugin_entries
+  if (!Array.isArray(list)) return []
+  return list.filter((e: any) => e?.slot === 'user.functions' && e?.platform === 'pc' && e?.path)
 })
+
+function pluginEntryIcon(label: string): string {
+  if (String(label).includes('分销')) return 'i-carbon-network-4'
+  if (String(label).includes('签到')) return 'i-carbon-calendar-heat-map'
+  if (String(label).includes('积分')) return 'i-carbon-shopping-catalog'
+  if (String(label).includes('券')) return 'i-carbon-ticket'
+  return 'i-carbon-application'
+}
 
 const menuGroups = computed(() => [
   {
@@ -89,10 +98,11 @@ const menuGroups = computed(() => [
     items: [
       { label: '我的余额', path: '/user/balance', icon: 'i-carbon-wallet' },
       { label: '我的积分', path: '/user/points', icon: 'i-carbon-gift' },
-      { label: '每日签到', path: '/user/sign', icon: 'i-carbon-calendar-heat-map' },
-      ...(hasDistribution.value
-        ? [{ label: '分销中心', path: '/user/distribution', icon: 'i-carbon-network-4' }]
-        : []),
+      ...pluginEntries.value.map((e: any) => ({
+        label: e.label,
+        path: e.path,
+        icon: pluginEntryIcon(e.label),
+      })),
     ],
   },
   {

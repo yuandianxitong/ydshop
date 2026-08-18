@@ -22,7 +22,6 @@ use app\support\OrderItemAmountAllocator;
 use core\base\Service;
 use core\exception\BusinessException;
 use core\plugin\HookManager;
-use core\plugin\PluginManager;
 
 class OrderService extends Service
 {
@@ -95,49 +94,30 @@ class OrderService extends Service
                     throw new BusinessException("商品「{$spu['name']}」库存不足");
                 }
 
-                // 默认走 SKU 原价
-                $unitPrice = (string)$sku['price'];
-
-                // 秒杀分支：FlashSaleService 内部做活动校验 + 限购 + 原子扣秒杀库存，
-                // 返回 flash_price 替换 unit_price
-                if ($flashItemId > 0) {
-                    if (!PluginManager::isInstalled('flash_sale')
-                        || !class_exists('\plugins\flash_sale\service\FlashSaleService')
-                    ) {
-                        throw new BusinessException('秒杀活动不可用');
-                    }
-                    /** @var \plugins\flash_sale\service\FlashSaleService $flashService */
-                    $flashService = app(\plugins\flash_sale\service\FlashSaleService::class);
-                    $flashPrice   = $flashService->purchaseFlashItem($flashItemId, $userId, $quantity);
-                    $unitPrice    = (string)$flashPrice;
+                $lineState = HookManager::apply('order.prepare_line', [
+                    'user_id'            => $userId,
+                    'sku_id'             => $skuId,
+                    'quantity'           => $quantity,
+                    'flash_item_id'      => $flashItemId,
+                    'group_activity_id'  => $groupActivityId,
+                    'group_id'           => $groupId,
+                    'sku'                => $sku,
+                    'spu'                => $spu,
+                ], [
+                    'unit_price'    => (string) $sku['price'],
+                    'handled_flash' => false,
+                    'handled_group' => false,
+                    'order_extra'   => [],
+                ]);
+                if ($flashItemId > 0 && empty($lineState['handled_flash'])) {
+                    throw new BusinessException('秒杀活动不可用');
                 }
-
-                // 拼团分支：取活动 group_price 替换 sku.price + 校验活动有效 + sku 匹配
-                if ($groupActivityId > 0 || $groupId > 0) {
-                    if (!PluginManager::isInstalled('group_buy')
-                        || !class_exists('\plugins\group_buy\repository\MarketingGroupActivityRepository')
-                    ) {
-                        throw new BusinessException('拼团活动不可用');
-                    }
-                    if ($groupId > 0) {
-                        $existing = app(\plugins\group_buy\repository\MarketingGroupRepository::class)->find($groupId);
-                        if (!$existing) {
-                            throw new BusinessException('拼团不存在');
-                        }
-                        if (!$this->isGroupJoinable($existing)) {
-                            throw new BusinessException('该团已结束或已过期，无法参团');
-                        }
-                        $groupActivityId = (int)$existing['activity_id'];
-                    }
-                    $activity = app(\plugins\group_buy\repository\MarketingGroupActivityRepository::class)->find($groupActivityId);
-                    if (!$activity || !$this->isGroupActivityActive($activity)) {
-                        throw new BusinessException('拼团活动不存在或已结束');
-                    }
-                    if ((int)$activity['sku_id'] !== $skuId) {
-                        throw new BusinessException('SKU 与拼团活动不匹配');
-                    }
-                    $unitPrice  = (string)$activity['group_price'];
-                    $groupAssoc = ['activity_id' => $groupActivityId, 'group_id' => $groupId];
+                if (($groupActivityId > 0 || $groupId > 0) && empty($lineState['handled_group'])) {
+                    throw new BusinessException('拼团活动不可用');
+                }
+                $unitPrice = (string) ($lineState['unit_price'] ?? $sku['price']);
+                if (!empty($lineState['order_extra']) && is_array($lineState['order_extra'])) {
+                    $groupAssoc = $lineState['order_extra'];
                 }
 
                 $lineTotal   = bcmul($unitPrice, (string)$quantity, 2);
@@ -253,30 +233,13 @@ class OrderService extends Service
                 $this->goodsSpuRepository->incSalesCount((int)$spuRow['id'], $row['quantity']);
             }
 
-            // 优惠券属于订单金额的一部分，必须在主事务内锁定；失败则整单回滚。
-            // 插件停用/未装时跳过核销（折扣钩子本身也不会注册）。
-            $couponUserId = (int)($data['coupon_user_id'] ?? 0);
-            if ($couponUserId > 0
-                && PluginManager::isInstalled('coupon')
-                && class_exists('\plugins\coupon\service\CouponService')
-            ) {
-                app(\plugins\coupon\service\CouponService::class)
-                    ->useCoupon($couponUserId, $orderId, $userId);
-            }
-
-            // 拼团订单：订单创建成功后写入 marketing_groups + members（事务内）
-            if ($groupAssoc !== null
-                && PluginManager::isInstalled('group_buy')
-                && class_exists('\plugins\group_buy\service\GroupBuyService')
-            ) {
-                /** @var \plugins\group_buy\service\GroupBuyService $groupService */
-                $groupService = app(\plugins\group_buy\service\GroupBuyService::class);
-                if ($groupAssoc['group_id'] > 0) {
-                    $groupService->joinGroup($groupAssoc['group_id'], $userId, $orderId);
-                } else {
-                    $groupService->startGroup($groupAssoc['activity_id'], $userId, $orderId);
-                }
-            }
+            // 优惠券核销 / 开团参团：插件 hook，必须在主事务内；失败则整单回滚。
+            HookManager::apply('order.after_create', [
+                'order_id'       => $orderId,
+                'user_id'        => $userId,
+                'coupon_user_id' => (int) ($data['coupon_user_id'] ?? 0),
+                'order_extra'    => $groupAssoc ?? [],
+            ]);
 
             // 自提订单：生成自提码并写入门店信息
             if (($data['delivery_type'] ?? 'express') === 'pickup') {
@@ -375,37 +338,17 @@ class OrderService extends Service
             }
             $qty = max(1, (int)($row['quantity'] ?? 1));
 
-            // 秒杀试算：传 flash_item_id 时取 flash_price 替代 sku.price（插件缺席则忽略）
-            $unitPrice   = (string)$sku['price'];
-            $flashItemId = (int)($row['flash_item_id'] ?? 0);
-            if ($flashItemId > 0
-                && PluginManager::isInstalled('flash_sale')
-                && class_exists('\plugins\flash_sale\repository\MarketingFlashSaleItemRepository')
-            ) {
-                $flashItem = app(\plugins\flash_sale\repository\MarketingFlashSaleItemRepository::class)->find($flashItemId);
-                if ($flashItem) {
-                    $unitPrice = (string)$flashItem['flash_price'];
-                }
-            }
-
-            // 拼团试算：传 group_activity_id / group_id 时取 group_price（插件缺席则忽略）
-            $groupActivityId = (int)($row['group_activity_id'] ?? 0);
-            $groupId         = (int)($row['group_id'] ?? 0);
-            if (($groupActivityId > 0 || $groupId > 0)
-                && PluginManager::isInstalled('group_buy')
-                && class_exists('\plugins\group_buy\repository\MarketingGroupActivityRepository')
-            ) {
-                if ($groupId > 0) {
-                    $g = app(\plugins\group_buy\repository\MarketingGroupRepository::class)->find($groupId);
-                    if ($g) {
-                        $groupActivityId = (int)$g['activity_id'];
-                    }
-                }
-                $activity = app(\plugins\group_buy\repository\MarketingGroupActivityRepository::class)->find($groupActivityId);
-                if ($activity) {
-                    $unitPrice = (string)$activity['group_price'];
-                }
-            }
+            $quoted = HookManager::apply('order.quote_line', [
+                'sku_id'            => $skuId,
+                'quantity'          => $qty,
+                'flash_item_id'     => (int) ($row['flash_item_id'] ?? 0),
+                'group_activity_id' => (int) ($row['group_activity_id'] ?? 0),
+                'group_id'          => (int) ($row['group_id'] ?? 0),
+                'sku'               => $sku,
+            ], [
+                'unit_price' => (string) $sku['price'],
+            ]);
+            $unitPrice = (string) ($quoted['unit_price'] ?? $sku['price']);
 
             $lineTotal   = bcmul($unitPrice, (string)$qty, 2);
             $goodsAmount = bcadd($goodsAmount, $lineTotal, 2);
@@ -674,14 +617,10 @@ class OrderService extends Service
         });
     }
 
-    /** 优惠券回退保留为可测试边界；实现仍委托插件 Service。 */
+    /** 优惠券回退保留为可测试边界；实现由插件 hook。 */
     protected function returnOrderCoupon(int $orderId): void
     {
-        if (PluginManager::isInstalled('coupon')
-            && class_exists('\plugins\coupon\service\CouponService')
-        ) {
-            app(\plugins\coupon\service\CouponService::class)->returnCoupon($orderId);
-        }
+        HookManager::apply('order.return_coupon', ['order_id' => $orderId]);
     }
 
     /**
@@ -870,14 +809,11 @@ class OrderService extends Service
         foreach ($items as $item) {
             $this->goodsSkuRepository->restoreStock((int)$item['sku_id'], (int)$item['quantity']);
             $this->goodsSpuRepository->decSalesCount((int)$item['spu_id'], (int)$item['quantity']);
-            $flashItemId = (int)($item['flash_item_id'] ?? 0);
-            if ($flashItemId > 0
-                && PluginManager::isInstalled('flash_sale')
-                && class_exists('\plugins\flash_sale\service\FlashSaleService')
-            ) {
-                app(\plugins\flash_sale\service\FlashSaleService::class)
-                    ->restoreFlashStock($flashItemId, (int)$item['quantity']);
-            }
+            HookManager::apply('order.restore_stock_item', [
+                'flash_item_id' => (int) ($item['flash_item_id'] ?? 0),
+                'sku_id'        => (int) ($item['sku_id'] ?? 0),
+                'quantity'      => (int) ($item['quantity'] ?? 0),
+            ]);
         }
     }
 
@@ -933,11 +869,12 @@ class OrderService extends Service
         if ((float)$freight <= 0) {
             return '0.00';
         }
-        if (PluginManager::isInstalled('full_discount')
-            && class_exists('\plugins\full_discount\service\FullDiscountService')
-            && app(\plugins\full_discount\service\FullDiscountService::class)
-                ->hasMatchingFreightDiscount($goodsAmount, $spuIds)
-        ) {
+        $freight = (string) HookManager::apply('order.freight_benefit', [
+            'user_id'      => $userId,
+            'goods_amount' => $goodsAmount,
+            'spu_ids'      => $spuIds,
+        ], $freight);
+        if ((float) $freight <= 0) {
             return '0.00';
         }
         $profile = $this->userRepository->findProfile($userId);
@@ -1061,40 +998,6 @@ class OrderService extends Service
             ]);
         }
         return $result['transitioned'];
-    }
-
-    /**
-     * 拼团活动是否在有效期且启用（替代 MarketingGroupActivity.isActive）
-     *
-     * @param array<string, mixed> $activity
-     */
-    private function isGroupActivityActive(array $activity): bool
-    {
-        if ((int)($activity['status'] ?? 0) !== 1) {
-            return false;
-        }
-        $now = date('Y-m-d H:i:s');
-        if (!empty($activity['start_at']) && $activity['start_at'] > $now) {
-            return false;
-        }
-        if (!empty($activity['end_at']) && $activity['end_at'] < $now) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * 拼团是否可参团（替代 MarketingGroup.canJoin）
-     *
-     * @param array<string, mixed> $group
-     */
-    private function isGroupJoinable(array $group): bool
-    {
-        if (($group['status'] ?? '') !== 'pending') {
-            return false;
-        }
-        $expireAt = $group['expire_at'] ?? null;
-        return !$expireAt || $expireAt > date('Y-m-d H:i:s');
     }
 
     /**

@@ -78,7 +78,10 @@ class PluginPacker
 
         try {
             self::addDir($zip, $dir);
-            $frontendFiles = self::addFrontend($zip, $code);
+            $frontendFiles = self::bundledFrontendCount($dir);
+            if ($frontendFiles === 0) {
+                $frontendFiles = self::addFrontend($zip, $code);
+            }
         } catch (\Throwable $e) {
             $zip->close();
             @unlink($zipPath);
@@ -134,6 +137,26 @@ class PluginPacker
                 $zip->addFile($item->getPathname(), $rel);
             }
         }
+    }
+
+    private static function bundledFrontendCount(string $dir): int
+    {
+        $count = 0;
+        foreach (['admin', 'pc', 'uniapp'] as $tree) {
+            $src = $dir . DIRECTORY_SEPARATOR . $tree;
+            if (!is_dir($src)) {
+                continue;
+            }
+            $items = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($items as $item) {
+                if ($item->isFile() && !$item->isLink()) {
+                    $count++;
+                }
+            }
+        }
+        return $count;
     }
 
     private static function addFrontend(ZipArchive $zip, string $code): int

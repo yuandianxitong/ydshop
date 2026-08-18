@@ -50,18 +50,18 @@
         "psr-4": {
             "app\\": "app",
             "core\\": "core/",
-            "plugins\\coupon\\": "plugins/coupon/",
-            "plugins\\flash_sale\\": "plugins/flash_sale/",
-            "plugins\\full_discount\\": "plugins/full_discount/",
-            "plugins\\group_buy\\": "plugins/group_buy/",
-            "plugins\\lottery\\": "plugins/lottery/",
-            "plugins\\new_user_gift\\": "plugins/new_user_gift/",
-            "plugins\\sign\\": "plugins/sign/",
-            "plugins\\points_product\\": "plugins/points_product/",
-            "plugins\\content_mgmt\\": "plugins/content_mgmt/",
-            "plugins\\article\\": "plugins/article/",
-            "plugins\\ai_assistant\\": "plugins/ai_assistant/",
-            "plugins\\distribution\\": "plugins/distribution/"
+            "plugins\\coupon\\": "plugins/coupon/app/",
+            "plugins\\flash_sale\\": "plugins/flash_sale/app/",
+            "plugins\\full_discount\\": "plugins/full_discount/app/",
+            "plugins\\group_buy\\": "plugins/group_buy/app/",
+            "plugins\\lottery\\": "plugins/lottery/app/",
+            "plugins\\new_user_gift\\": "plugins/new_user_gift/app/",
+            "plugins\\sign\\": "plugins/sign/app/",
+            "plugins\\points_product\\": "plugins/points_product/app/",
+            "plugins\\content_mgmt\\": "plugins/content_mgmt/app/",
+            "plugins\\article\\": "plugins/article/app/",
+            "plugins\\ai_assistant\\": "plugins/ai_assistant/app/",
+            "plugins\\distribution\\": "plugins/distribution/app/"
         },
         "psr-0": {
             "": "extend/"

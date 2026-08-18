@@ -68,8 +68,8 @@ class MarketController extends Controller
         if ($code === '') {
             return $this->error('缺少插件 code');
         }
-        $installed = $this->pluginService->installFromOfficial($code, $version !== '' ? $version : null);
-        return $this->success('安装成功', ['code' => $installed]);
+        $payload = $this->pluginService->installFromOfficial($code, $version !== '' ? $version : null);
+        return $this->success('后端已安装', $payload);
     }
 
     /**
@@ -87,8 +87,8 @@ class MarketController extends Controller
         $file->move(dirname($tmpZip), basename($tmpZip));
 
         try {
-            $code = $this->pluginService->uploadAndInstall($tmpZip);
-            return $this->success('安装成功', ['code' => $code]);
+            $payload = $this->pluginService->uploadAndInstall($tmpZip);
+            return $this->success('后端已安装', $payload);
         } finally {
             @unlink($tmpZip);
         }

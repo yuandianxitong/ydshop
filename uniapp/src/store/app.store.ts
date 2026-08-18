@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { configApi } from '@/api/config'
 import { applyThemeVars as applyVarsToDocument } from '@/styles/theme-vars'
+import { setPluginPublicPaths } from '@/utils/request'
 
 export const useAppStore = defineStore('app', () => {
   const config = ref<Record<string, any>>({})
@@ -28,6 +29,7 @@ export const useAppStore = defineStore('app', () => {
     configPromise = configApi.getGlobalConfig().then((result) => {
       config.value = result
       isConfigLoaded.value = true
+      setPluginPublicPaths(result?.plugin_public_paths)
       applyThemeVars()
       return result
     }).finally(() => {

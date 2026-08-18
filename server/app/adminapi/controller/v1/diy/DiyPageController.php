@@ -13,6 +13,7 @@ use OpenApi\Attributes as OA;
 class DiyPageController extends Controller
 {
     protected DiyPageService $service;
+    protected \app\service\diy\DiyCatalogService $catalogService;
     protected \app\service\diy\DiyPageVersionService $versionService;
 
     #[Permission('diy.page.list')]
@@ -224,5 +225,22 @@ class DiyPageController extends Controller
     {
         $this->versionService->restore((int) $this->request->param('id'), (int) $this->request->param('vid'));
         return $this->success('已恢复至所选版本');
+    }
+
+    #[Permission('diy.page.list')]
+    #[OA\Get(
+        path: '/diy/catalog',
+        summary: '装修链接与画布组件目录（按平台 + 已装插件）',
+        security: [['bearerAuth' => []]],
+        tags: ['DIY 装修页面'],
+        parameters: [
+            new OA\Parameter(name: 'platform', in: 'query', schema: new OA\Schema(type: 'string', default: 'uniapp')),
+        ],
+        responses: [new OA\Response(response: 200, description: '获取成功', content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse'))]
+    )]
+    public function catalog()
+    {
+        $platform = (string) $this->request->get('platform', 'uniapp');
+        return $this->success('获取成功', $this->catalogService->catalog($platform));
     }
 }

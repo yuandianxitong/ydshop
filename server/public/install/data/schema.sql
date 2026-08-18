@@ -1960,6 +1960,52 @@ CREATE TABLE IF NOT EXISTS `plugin_migrations` (
   UNIQUE KEY `uk_plugin_version` (`plugin_code`, `version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='插件 migration 执行记录';
 
+CREATE TABLE IF NOT EXISTS `plugin_builds` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `target` varchar(20) NOT NULL COMMENT 'admin|pc',
+  `trigger` varchar(30) NOT NULL COMMENT 'install|upgrade|uninstall|manual',
+  `plugin_code` varchar(64) DEFAULT NULL,
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0queued 1running 2success 3failed 5skipped',
+  `log` longtext,
+  `artifact_path` varchar(255) NOT NULL DEFAULT '',
+  `started_at` datetime DEFAULT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `operator_id` int unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_plugin` (`plugin_code`),
+  KEY `idx_target_status` (`target`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='后台/PC 云编译任务';
+
+CREATE TABLE IF NOT EXISTS `mobile_builds` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `platform` varchar(20) NOT NULL COMMENT 'h5|mp-weixin',
+  `trigger` varchar(30) NOT NULL,
+  `plugin_code` varchar(64) DEFAULT NULL,
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0queued 1running 2success 3failed 4uploaded 5skipped',
+  `log` longtext,
+  `artifact_path` varchar(255) NOT NULL DEFAULT '',
+  `upload_result_json` longtext,
+  `started_at` datetime DEFAULT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `operator_id` int unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_plugin` (`plugin_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='H5/小程序渠道编译任务';
+
+CREATE TABLE IF NOT EXISTS `mobile_channel_config` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `wechat_appid` varchar(64) NOT NULL DEFAULT '',
+  `wechat_upload_key` text,
+  `wechat_upload_version` varchar(32) NOT NULL DEFAULT '1.0.0',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='小程序 CI 上传配置（单店一份）';
+
 -- ============================================================
 -- 框架数据库升级记录表（php think yd:update 使用）
 -- ============================================================

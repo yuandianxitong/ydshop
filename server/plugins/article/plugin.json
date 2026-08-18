@@ -1,42 +1,114 @@
 {
-  "code": "article",
-  "name": "文章资讯",
-  "version": "1.0.0",
-  "description": "新闻 / 公告 / 帮助中心文章，含分类管理",
-  "author": "ydadmin",
-  "category": "core",
-  "parent_menu": "Plugin",
-  "palette": ["#0ea5e9", "#0284c7"],
-  "requires": { "php": ">=8.0", "framework": ">=1.0.0", "plugins": [] },
-  "menus": [
-    {
-      "name": "ContentArticleGroup",
-      "title": "文章资讯",
-      "path": "/content/article-group",
-      "component": "/content/article-category/index",
-      "icon": "i-svg:newspaper",
-      "permission": "article_category.list",
-      "sort": 2
+    "code": "article",
+    "name": "文章资讯",
+    "version": "1.0.0",
+    "description": "新闻 / 公告 / 帮助中心文章，含分类管理",
+    "author": "ydadmin",
+    "category": "core",
+    "parent_menu": "Plugin",
+    "palette": [
+        "#0ea5e9",
+        "#0284c7"
+    ],
+    "requires": {
+        "php": ">=8.0",
+        "framework": ">=1.0.0",
+        "plugins": []
     },
-    {
-      "name": "ContentArticleList",
-      "title": "文章列表",
-      "path": "/content/article-list",
-      "component": "/content/article/index",
-      "icon": "i-lucide:file-text",
-      "permission": "article.list",
-      "sort": 3
+    "menus": [
+        {
+            "name": "ContentArticleGroup",
+            "title": "文章资讯",
+            "path": "/content/article-group",
+            "component": "/content/article-category/index",
+            "icon": "i-svg:newspaper",
+            "permission": "article_category.list",
+            "sort": 2
+        },
+        {
+            "name": "ContentArticleList",
+            "title": "文章列表",
+            "path": "/content/article-list",
+            "component": "/content/article/index",
+            "icon": "i-lucide:file-text",
+            "permission": "article.list",
+            "sort": 3
+        }
+    ],
+    "permissions": [
+        {
+            "name": "article.list",
+            "title": "文章列表",
+            "group": "content"
+        },
+        {
+            "name": "article.create",
+            "title": "新建文章",
+            "group": "content"
+        },
+        {
+            "name": "article.update",
+            "title": "编辑文章",
+            "group": "content"
+        },
+        {
+            "name": "article.delete",
+            "title": "删除文章",
+            "group": "content"
+        },
+        {
+            "name": "article_category.list",
+            "title": "文章分类列表",
+            "group": "content"
+        },
+        {
+            "name": "article_category.create",
+            "title": "新建文章分类",
+            "group": "content"
+        },
+        {
+            "name": "article_category.update",
+            "title": "编辑文章分类",
+            "group": "content"
+        },
+        {
+            "name": "article_category.delete",
+            "title": "删除文章分类",
+            "group": "content"
+        }
+    ],
+    "routes": {
+        "admin": "app/adminapi/route.php",
+        "api": "app/api/route.php"
+    },
+    "hooks": [
+        "ArticleDiyHydrateHook"
+    ],
+    "diy": {
+        "widgets": [
+            {
+                "type": "article-list",
+                "label": "文章列表",
+                "icon": "i-svg:diy-article-list",
+                "group": "基础组件",
+                "default_props": []
+            }
+        ],
+        "links": [
+            {
+                "category": "content",
+                "label": "文章详情",
+                "uniapp": "/modules/article/pages/article-detail?id=",
+                "pc": "/article/",
+                "need_select": true,
+                "select_type": "article"
+            },
+            {
+                "category": "content",
+                "label": "文章列表",
+                "uniapp": "",
+                "pc": "/article"
+            }
+        ]
     }
-  ],
-  "permissions": [
-    { "name": "article.list",            "title": "文章列表",     "group": "content" },
-    { "name": "article.create",          "title": "新建文章",     "group": "content" },
-    { "name": "article.update",          "title": "编辑文章",     "group": "content" },
-    { "name": "article.delete",          "title": "删除文章",     "group": "content" },
-    { "name": "article_category.list",   "title": "文章分类列表", "group": "content" },
-    { "name": "article_category.create", "title": "新建文章分类", "group": "content" },
-    { "name": "article_category.update", "title": "编辑文章分类", "group": "content" },
-    { "name": "article_category.delete", "title": "删除文章分类", "group": "content" }
-  ],
-  "routes": { "admin": "route/admin.php", "api": "route/api.php" }
 }

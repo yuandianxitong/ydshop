@@ -90,12 +90,32 @@ export const pluginApi = {
         return myRequest.post<void>('/adminapi/market/disconnect')
     },
     installOfficial(code: string, version?: string) {
-        return myRequest.post<{ code: string }>('/adminapi/market/install', version ? { code, version } : { code })
+        return myRequest.post<{
+            code: string
+            backend: string
+            mode?: 'dev' | 'cloud' | 'sync'
+            builds: {
+                frontend?: number
+                mode?: string
+                admin_pc?: Array<{ id: number; status?: number }>
+                mobile?: Array<{ id: number; status?: number }>
+            }
+        }>('/adminapi/market/install', version ? { code, version } : { code })
     },
     uploadInstall(file: File, onProgress?: (p: number) => void) {
         const form = new FormData()
         form.append('file', file)
-        return myRequest.post<{ code: string }>('/adminapi/market/upload', form, {
+        return myRequest.post<{
+            code: string
+            backend: string
+            mode?: 'dev' | 'cloud' | 'sync'
+            builds: {
+                frontend?: number
+                mode?: string
+                admin_pc?: Array<{ id: number; status?: number }>
+                mobile?: Array<{ id: number; status?: number }>
+            }
+        }>('/adminapi/market/upload', form, {
             headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (e: { total?: number; loaded: number }) => {
                 if (e.total && onProgress) onProgress(Math.round((e.loaded / e.total) * 100))

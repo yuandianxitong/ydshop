@@ -145,6 +145,13 @@ class GoodsSpuService extends Service
         if (($detail['status'] ?? '') === 'on_sale') {
             $this->goodsSpuRepo->incViewCount($id);
         }
+        $promo = \core\plugin\HookManager::apply('goods.detail_promo', [
+            'spu_id' => $id,
+            'detail' => $detail,
+        ], []);
+        if (is_array($promo) && $promo !== []) {
+            $detail['promo'] = $promo;
+        }
         return $detail;
     }
 

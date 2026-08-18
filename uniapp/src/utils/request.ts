@@ -40,12 +40,18 @@ const PUBLIC_PATH_PATTERNS = [
   /^\/modules\/article\/pages\//,
   /^\/modules\/announcement\/pages\//,
   /^\/modules\/help\/pages\//,
-  /^\/modules\/marketing\/pages\/(coupon|flash-sale|group-buy|points-mall|lottery|lottery-detail)$/,
 ]
+
+let extraPublicPaths: string[] = []
+
+export function setPluginPublicPaths(paths: unknown) {
+  extraPublicPaths = Array.isArray(paths) ? paths.filter((p): p is string => typeof p === 'string') : []
+}
 
 function isPublicPath(path: string): boolean {
   const [pathname] = path.split('?')
-  return PUBLIC_PATH_PATTERNS.some(pattern => pattern.test(pathname))
+  if (PUBLIC_PATH_PATTERNS.some(pattern => pattern.test(pathname))) return true
+  return extraPublicPaths.some((p) => pathname === p || pathname.startsWith(`${p}?`))
 }
 
 function normalizePaginationData(data: any): any {

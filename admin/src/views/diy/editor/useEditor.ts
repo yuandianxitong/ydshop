@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { diyApi, type DiyComponent, type DiyPageSettings } from '@/api/diy'
+import { diyApi, type DiyCatalogLinkGroup, type DiyCatalogWidget, type DiyComponent, type DiyPageSettings } from '@/api/diy'
 import { defaultComponentStyle } from './styleUtils'
 
 export interface ComponentDef {
@@ -57,6 +57,9 @@ const previewBackup = ref<{
     components: DiyComponent[]
     page_settings: DiyPageSettings
 } | null>(null)
+const catalogLinks = ref<DiyCatalogLinkGroup[]>([])
+const catalogWidgets = ref<DiyCatalogWidget[]>([])
+const catalogLoaded = ref(false)
 
 export function useEditor() {
     const selectedComponent = computed(() => {
@@ -206,6 +209,20 @@ export function useEditor() {
         previewBackup.value = null
     }
 
+    async function loadCatalog(forPlatform?: 'uniapp' | 'pc') {
+        const p = forPlatform || platform.value
+        try {
+            const res = await diyApi.getCatalog(p)
+            catalogLinks.value = res.data?.links || []
+            catalogWidgets.value = res.data?.widgets || []
+            catalogLoaded.value = true
+        } catch {
+            catalogLinks.value = []
+            catalogWidgets.value = []
+            catalogLoaded.value = false
+        }
+    }
+
     async function reloadPage() {
         if (!pageId.value) return
         const res = await diyApi.getPageDetail(pageId.value)
@@ -227,6 +244,7 @@ export function useEditor() {
         moveComponentUp, moveComponentDown, toggleHidden,
         undo, redo, setComponents, saveSnapshot,
         updatePageSettings, activatePageSettings,
-        enterPreview, exitPreview, reloadPage,
+        enterPreview, exitPreview, reloadPage, loadCatalog,
+        catalogLinks, catalogWidgets, catalogLoaded,
     }
 }

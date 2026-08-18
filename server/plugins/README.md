@@ -2,6 +2,48 @@
 
 公开仓只包含 **Apache 核心** 与免费获客插件。付费商城组件通过官网市场交付签名 zip，**不要**推进公开远程。
 
+## 完整包目录
+
+每个插件是独立包，业务与三端源码都在插件内；主工程只是编译落点。
+
+```
+server/plugins/{code}/
+  plugin.json
+  database/
+  admin/          # 镜像 Shop/admin/，安装软链到宿主 admin/
+  pc/             # 镜像 Shop/pc/
+  uniapp/         # 镜像 Shop/uniapp/
+  app/            # PSR-4 plugins\{code}\
+    adminapi/controller|route.php|validate
+    api/controller|route.php|validate
+    service/ repository/ model/ hook/ listener/ command/ event.php
+```
+
+- 命名空间示例：`plugins\coupon\adminapi\controller\CouponController`
+- 无 `app/` 的旧 zip 仍从插件根加载（boot 时 PSR-4 回退）
+- `plugin.json` 可声明 `hooks`、`commands`、`diy`、`c_end`、`uniapp.subPackages`
+- 安装/入册/升级软链同步三端并合并 `pages.json`，再入队云编译；卸载撤回软链并重编宿主
+- 开发机：`admin`/`pc` 的 `predev` 跑 `scripts/sync-plugins.mjs`
+- 生产：`php think queue:work --queue=frontend-builds`（Node sidecar，禁止 PHP-FPM exec pnpm）
+- 官方小程序页已在发行包则跳过 C 端编；新原生页走「客户端发布」
+- 手动只同步：`php think plugin:frontend-deploy {code|--all}`
+
+## 宿主 hook（实现写在插件 hook/）
+
+| hook | 用途 |
+|---|---|
+| `order.calc_discount` | 满减 / 优惠券折扣 |
+| `order.quote_line` | 试算改价 |
+| `order.prepare_line` | 下单改价、扣插件库存 |
+| `order.after_create` | 事务内核销券 / 开团参团 |
+| `order.return_coupon` / `order.rebind_coupon` | 取消回券、合单改绑 |
+| `order.restore_stock_item` / `order.restore_flash_item` | 取消/退款还库存 |
+| `order.freight_benefit` | 满减包邮 |
+| `order.has_plugin_constraint` | 禁止拆合改价 |
+| `diy.hydrate` | 装修组件数据 |
+| `goods.detail_promo` | 商品详情促销条 |
+| `finance.*` | 提现仓储/对账/新人礼积分概览 |
+
 ## 仓库内（免费）
 
 - `coupon` 优惠券

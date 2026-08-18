@@ -15,7 +15,7 @@ use app\service\payment\PaymentService;
 use app\support\OrderItemAmountAllocator;
 use core\base\Service;
 use core\exception\BusinessException;
-use core\plugin\PluginManager;
+use core\plugin\HookManager;
 
 class OrderRefundService extends Service
 {
@@ -1109,13 +1109,10 @@ class OrderRefundService extends Service
      */
     protected function restoreFlashItemStock(int $flashItemId, int $quantity): void
     {
-        if (!PluginManager::isInstalled('flash_sale')
-            || !class_exists('\plugins\flash_sale\repository\MarketingFlashSaleItemRepository')
-        ) {
-            return;
-        }
-        app(\plugins\flash_sale\repository\MarketingFlashSaleItemRepository::class)
-            ->restoreStock($flashItemId, $quantity);
+        HookManager::apply('order.restore_flash_item', [
+            'flash_item_id' => $flashItemId,
+            'quantity'      => $quantity,
+        ]);
     }
 
     /**

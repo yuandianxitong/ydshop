@@ -161,6 +161,19 @@ npm run build        # 构建生产版本
 
 构建产物会输出到 `server/public/admin/`，上传至服务器即可生效。
 
+公开仓克隆后请入册免费插件（开发机 `npm run dev` 会先 sync 软链；生产由 `frontend-builds` 队列编 admin/PC）：
+
+```bash
+cd server
+php think plugin:enroll-bundled
+php think yd:update
+# 可选：只同步软链，不编译
+php think plugin:frontend-deploy --all
+# 生产 worker（须本机或 sidecar 已装 Node，不要在 PHP-FPM 里跑）
+php think queue:work --queue=frontend-builds --tries=1 --timeout=900 --sleep=3
+# 或：cd docker && docker compose --profile build up -d frontend-builder
+```
+
 移动端开发：
 
 ```bash

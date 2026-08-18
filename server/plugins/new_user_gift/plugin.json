@@ -1,30 +1,60 @@
 {
-  "code": "new_user_gift",
-  "name": "新人礼包",
-  "version": "1.0.0",
-  "description": "新注册用户首次登录领取礼包，含优惠券 / 积分 / 余额组合",
-  "author": "ydadmin",
-  "category": "core",
-  "parent_menu": "Marketing",
-  "palette": ["#fb923c", "#f59e0b"],
-  "requires": { "php": ">=8.0", "framework": ">=1.0.0", "plugins": ["coupon"] },
-  "menus": [
-    {
-      "name": "MarketingNewUserGift",
-      "title": "新人礼包",
-      "path": "/marketing/new-user-gift",
-      "component": "/marketing/new-user-gift/index",
-      "icon": "i-lucide:user-plus",
-      "permission": "new_user_gift.list",
-      "sort": 7
-    }
-  ],
-  "permissions": [
-    { "name": "new_user_gift.list",   "title": "新人礼包列表", "group": "marketing" },
-    { "name": "new_user_gift.create", "title": "新建新人礼包", "group": "marketing" },
-    { "name": "new_user_gift.update", "title": "编辑新人礼包", "group": "marketing" },
-    { "name": "new_user_gift.delete", "title": "删除新人礼包", "group": "marketing" }
-  ],
-  "routes": { "admin": "route/admin.php" },
-  "events": "event.php"
+    "code": "new_user_gift",
+    "name": "新人礼包",
+    "version": "1.0.0",
+    "description": "新注册用户首次登录领取礼包，含优惠券 / 积分 / 余额组合",
+    "author": "ydadmin",
+    "category": "core",
+    "parent_menu": "Marketing",
+    "palette": [
+        "#fb923c",
+        "#f59e0b"
+    ],
+    "requires": {
+        "php": ">=8.0",
+        "framework": ">=1.0.0",
+        "plugins": [
+            "coupon"
+        ]
+    },
+    "menus": [
+        {
+            "name": "MarketingNewUserGift",
+            "title": "新人礼包",
+            "path": "/marketing/new-user-gift",
+            "component": "/marketing/new-user-gift/index",
+            "icon": "i-lucide:user-plus",
+            "permission": "new_user_gift.list",
+            "sort": 7
+        }
+    ],
+    "permissions": [
+        {
+            "name": "new_user_gift.list",
+            "title": "新人礼包列表",
+            "group": "marketing"
+        },
+        {
+            "name": "new_user_gift.create",
+            "title": "新建新人礼包",
+            "group": "marketing"
+        },
+        {
+            "name": "new_user_gift.update",
+            "title": "编辑新人礼包",
+            "group": "marketing"
+        },
+        {
+            "name": "new_user_gift.delete",
+            "title": "删除新人礼包",
+            "group": "marketing"
+        }
+    ],
+    "routes": {
+        "admin": "app/adminapi/route.php"
+    },
+    "events": "app/event.php",
+    "hooks": [
+        "NewUserGiftOverviewHook"
+    ]
 }

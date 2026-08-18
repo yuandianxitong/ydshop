@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "sync": "node ../scripts/sync-plugins.mjs --target pc",
+    "predev": "npm run sync",
+    "pregenerate": "npm run sync",
     "dev": "nuxt dev",
     "build": "nuxt build",
     "generate": "nuxt generate",
-    "postgenerate": "rm -rf ../server/public/pc && cp -r .output/public ../server/public/pc",
+    "postgenerate": "node ../scripts/copy-pc-output.mjs",
     "preview": "nuxt preview"
   },
   "dependencies": {

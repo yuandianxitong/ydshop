@@ -7,6 +7,7 @@ use app\repository\order\OrderInvoiceRepository;
 use app\repository\order\OrderItemRepository;
 use app\repository\order\OrderRefundRepository;
 use core\exception\BusinessException;
+use core\plugin\HookManager;
 
 /**
  * 订单拆分 / 合并 / 改价共享守护。
@@ -49,8 +50,8 @@ trait OrderAdjustGuardTrait
                 throw new BusinessException('秒杀订单不支持该操作');
             }
         }
-        if ($this->orderHasGroupBuyMember($orderId)) {
-            throw new BusinessException('拼团订单不支持该操作');
+        if ($this->orderHasPluginConstraint($orderId)) {
+            throw new BusinessException('营销活动订单不支持该操作');
         }
     }
 
@@ -62,16 +63,12 @@ trait OrderAdjustGuardTrait
         }
     }
 
-    /** 保留为可测试边界；实现委托拼团插件 Repository。 */
-    protected function orderHasGroupBuyMember(int $orderId): bool
+    /** 保留为可测试边界；拼团等插件通过 hook 声明约束。 */
+    protected function orderHasPluginConstraint(int $orderId): bool
     {
-        if (!\core\plugin\PluginManager::isInstalled('group_buy')
-            || !class_exists('\plugins\group_buy\repository\MarketingGroupMemberRepository')
-        ) {
-            return false;
-        }
-        return app(\plugins\group_buy\repository\MarketingGroupMemberRepository::class)
-            ->existsByOrderId($orderId);
+        return (bool) HookManager::apply('order.has_plugin_constraint', [
+            'order_id' => $orderId,
+        ], false);
     }
 
     /**

@@ -2,6 +2,7 @@
 use think\facade\Route;
 
 Route::group('diy', function () {
+    Route::get('catalog', 'v1.diy.DiyPageController/catalog');
     Route::group('page', function () {
         Route::get('', 'v1.diy.DiyPageController/index');
         Route::post('', 'v1.diy.DiyPageController/store');

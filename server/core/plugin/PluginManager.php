@@ -36,6 +36,12 @@ use think\facade\Db;
  */
 class PluginManager
 {
+    /** @var array{frontend?: int, mode?: string, admin_pc?: list<array<string, mixed>>, mobile?: list<array<string, mixed>>} */
+    public static array $lastFrontend = [];
+
+    /** 入册等批量操作设为 false，只软链不同步入队云编 */
+    public static bool $runFrontendQueue = true;
+
     /** @var array<string, PluginManifest> code => manifest */
     private static array $plugins = [];
 
@@ -99,6 +105,7 @@ class PluginManager
 
                 self::$plugins[$code] = $manifest;
                 self::$pluginDirs[$code] = $dir;
+                self::registerAutoload($code, $dir);
 
                 self::registerEvents($code, $dir, $manifest);
                 self::registerHooks($code, $manifest->raw);
@@ -138,8 +145,8 @@ class PluginManager
     private static function registerRoutes(string $code, string $dir, PluginManifest $manifest): void
     {
         $appName = self::currentHttpApp();
-        $routeDir = $dir . 'route' . DIRECTORY_SEPARATOR;
 
+        $loaded = false;
         if (!empty($manifest->routes)) {
             foreach ($manifest->routes as $scope => $rel) {
                 if (!is_string($rel) || $rel === '') {
@@ -151,16 +158,27 @@ class PluginManager
                 $path = $dir . ltrim($rel, '/\\');
                 if (is_file($path)) {
                     require $path;
+                    $loaded = true;
                 }
             }
-            return;
+            if ($loaded) {
+                return;
+            }
         }
 
-        foreach (['api.php', 'admin.php'] as $file) {
-            if (!self::routeScopeMatchesApp('', $file, $appName)) {
+        $fallbacks = [
+            ['admin', 'app/adminapi/route.php'],
+            ['admin', 'app/route/admin.php'],
+            ['admin', 'route/admin.php'],
+            ['api', 'app/api/route.php'],
+            ['api', 'app/route/api.php'],
+            ['api', 'route/api.php'],
+        ];
+        foreach ($fallbacks as [$scope, $rel]) {
+            if (!self::routeScopeMatchesApp($scope, $rel, $appName)) {
                 continue;
             }
-            $path = $routeDir . $file;
+            $path = $dir . str_replace('/', DIRECTORY_SEPARATOR, $rel);
             if (is_file($path)) {
                 require $path;
             }
@@ -216,13 +234,122 @@ class PluginManager
      */
     private static function registerEvents(string $code, string $dir, PluginManifest $manifest): void
     {
-        if ($manifest->events === '') {
-            return;
+        $candidates = [];
+        if ($manifest->events !== '') {
+            $candidates[] = $dir . ltrim($manifest->events, '/\\');
         }
-        $f = $dir . ltrim($manifest->events, '/\\');
-        if (is_file($f)) {
-            require_once $f;
+        $candidates[] = $dir . 'app' . DIRECTORY_SEPARATOR . 'event.php';
+        $candidates[] = $dir . 'event.php';
+        foreach ($candidates as $f) {
+            if (is_file($f)) {
+                require_once $f;
+                return;
+            }
         }
+    }
+
+    /**
+     * PSR-4: plugins\{code}\ → plugins/{code}/app/（无 app/ 则回退插件根）。
+     */
+    private static function registerAutoload(string $code, string $dir): void
+    {
+        $bases = [];
+        $appDir = $dir . 'app' . DIRECTORY_SEPARATOR;
+        if (is_dir($appDir)) {
+            $bases[] = $appDir;
+        }
+        $bases[] = $dir;
+        $prefix = 'plugins\\' . $code . '\\';
+
+        spl_autoload_register(static function (string $class) use ($prefix, $bases): void {
+            if (!str_starts_with($class, $prefix)) {
+                return;
+            }
+            $rel = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, strlen($prefix))) . '.php';
+            foreach ($bases as $base) {
+                $file = $base . $rel;
+                if (is_file($file)) {
+                    require_once $file;
+                    return;
+                }
+            }
+        }, true, true);
+    }
+
+    /**
+     * 扫描各插件 plugin.json 的 commands，供 console.php 注册。
+     *
+     * @return list<class-string>
+     */
+    public static function discoverConsoleCommands(): array
+    {
+        $out = [];
+        $pluginsDir = self::pluginsPath();
+        if (!is_dir($pluginsDir)) {
+            return $out;
+        }
+        foreach (scandir($pluginsDir) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $manifestFile = $pluginsDir . $entry . DIRECTORY_SEPARATOR . 'plugin.json';
+            if (!is_file($manifestFile)) {
+                continue;
+            }
+            $data = json_decode((string) file_get_contents($manifestFile), true);
+            if (!is_array($data)) {
+                continue;
+            }
+            foreach ((array) ($data['commands'] ?? []) as $cmd) {
+                if (!is_array($cmd)) {
+                    continue;
+                }
+                $class = (string) ($cmd['class'] ?? '');
+                if ($class === '') {
+                    continue;
+                }
+                if (!str_contains($class, '\\')) {
+                    $class = 'plugins\\' . $entry . '\\' . ltrim($class, '\\');
+                } elseif (!str_starts_with($class, 'plugins\\')) {
+                    $class = 'plugins\\' . $entry . '\\' . ltrim($class, '\\');
+                }
+                $rel = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, strlen('plugins\\' . $entry . '\\'))) . '.php';
+                $dir = $pluginsDir . $entry . DIRECTORY_SEPARATOR;
+                foreach ([$dir . 'app' . DIRECTORY_SEPARATOR . $rel, $dir . $rel] as $file) {
+                    if (is_file($file)) {
+                        require_once $file;
+                        break;
+                    }
+                }
+                if (class_exists($class)) {
+                    $out[] = $class;
+                }
+            }
+        }
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * 已装插件声明的可调度命令（name => title）。
+     *
+     * @return array<string, string>
+     */
+    public static function cronCommandMap(): array
+    {
+        $map = [];
+        foreach (self::$plugins as $manifest) {
+            foreach ((array) ($manifest->raw['commands'] ?? []) as $cmd) {
+                if (!is_array($cmd)) {
+                    continue;
+                }
+                $name  = (string) ($cmd['name'] ?? '');
+                $title = (string) ($cmd['title'] ?? $name);
+                if ($name !== '') {
+                    $map[$name] = $title !== '' ? $title : $name;
+                }
+            }
+        }
+        return $map;
     }
 
     /**
@@ -378,6 +505,7 @@ class PluginManager
         }
 
         self::clearCache();
+        self::$lastFrontend = self::runFrontendAfter($manifest->code, 'install');
     }
 
     /**
@@ -435,6 +563,7 @@ class PluginManager
         }
 
         self::clearCache();
+        self::$lastFrontend = self::runFrontendAfter($code, 'uninstall');
     }
 
     /**
@@ -499,6 +628,7 @@ class PluginManager
         }
 
         self::clearCache();
+        self::$lastFrontend = self::runFrontendAfter($code, 'upgrade');
     }
 
     /**
@@ -819,5 +949,46 @@ class PluginManager
     private static function cacheFile(): string
     {
         return runtime_path() . 'plugins_cache.php';
+    }
+
+    /**
+     * @return array{frontend: int, admin_pc: list<array<string, mixed>>, mobile: list<array<string, mixed>>}
+     */
+    private static function runFrontendAfter(string $code, string $trigger): array
+    {
+        if (!self::$runFrontendQueue) {
+            if ($trigger === 'uninstall') {
+                PluginFrontendDeployer::remove($code);
+                PluginFrontendSync::remove($code);
+                return ['frontend' => 0, 'mode' => 'sync', 'admin_pc' => [], 'mobile' => []];
+            }
+            $sync = PluginFrontendSync::sync($code);
+            PluginPagesJsonMerger::merge($code);
+            return ['frontend' => $sync['count'], 'mode' => 'sync', 'admin_pc' => [], 'mobile' => []];
+        }
+        if ($trigger === 'uninstall') {
+            if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
+                try {
+                    return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterUninstall($code);
+                } catch (\Throwable) {
+                    PluginFrontendDeployer::remove($code);
+                    PluginFrontendSync::remove($code);
+                }
+            } else {
+                PluginFrontendDeployer::remove($code);
+                PluginFrontendSync::remove($code);
+            }
+            return ['frontend' => 0, 'mode' => 'dev', 'admin_pc' => [], 'mobile' => []];
+        }
+        if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
+            try {
+                return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterInstall($code, $trigger);
+            } catch (\Throwable) {
+                // 未跑升级脚本时构建表可能不存在，仍同步软链
+            }
+        }
+        $sync = PluginFrontendSync::sync($code);
+        PluginPagesJsonMerger::merge($code);
+        return ['frontend' => $sync['count'], 'mode' => 'dev', 'admin_pc' => [], 'mobile' => []];
     }
 }

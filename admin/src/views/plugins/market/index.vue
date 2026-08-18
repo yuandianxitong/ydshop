@@ -93,6 +93,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pluginApi } from '@/api/plugin'
+import { buildStatusLabel, waitForBuilds } from '@/api/plugin-build'
 import { useMarketplaceOauth } from '@/composables/useMarketplaceOauth'
 import LocalUpload from './components/LocalUpload.vue'
 
@@ -196,13 +197,49 @@ const install = async (item: Record<string, any>) => {
     if (!code) return
     installing.value = code
     try {
-        await pluginApi.installOfficial(code)
-        ElMessage.success(`安装成功：${code}`)
+        const res = await pluginApi.installOfficial(code)
+        await reportInstall(res.data)
         router.push('/plugins/installed')
     } catch (e: any) {
         ElMessage.error(e?.message || '安装失败')
     } finally {
         installing.value = ''
+    }
+}
+
+const reportInstall = async (data?: {
+    code?: string
+    backend?: string
+    mode?: string
+    builds?: { mode?: string; admin_pc?: Array<{ id: number }>; mobile?: Array<{ id: number; status?: number }> }
+}) => {
+    const code = data?.code || ''
+    const mode = data?.mode || data?.builds?.mode || 'cloud'
+    if (mode === 'dev' || mode === 'sync') {
+        ElMessage.success(`后端已安装：${code}。前端已软链，请刷新后台；新页 404 时重启 npm run dev`)
+        return
+    }
+    const webIds = (data?.builds?.admin_pc || []).map((r) => r.id).filter(Boolean)
+    const mobileIds = (data?.builds?.mobile || []).map((r) => r.id).filter(Boolean)
+    ElMessage.success(`后端已安装：${code}，正在等待前端编译…`)
+    try {
+        const result = await waitForBuilds(webIds, mobileIds)
+        const webFail = result.web.some((r) => r.status === 3)
+        const mobileFail = result.mobile.some((r) => r.status === 3)
+        const mobileSkip = result.mobile.length > 0 && result.mobile.every((r) => r.status === 5)
+        if (webFail || mobileFail) {
+            ElMessage.warning('后端已生效，但前端编译失败，请到「云编译 / 客户端发布」查看日志')
+            return
+        }
+        if (mobileSkip) {
+            ElMessage.success('后台编译完成，请硬刷新。小程序页已预置，无需重编')
+        } else {
+            ElMessage.success(
+                `后台 ${result.web.map((r) => buildStatusLabel(r.status)).join('/')}；C 端 ${result.mobile.map((r) => buildStatusLabel(r.status, 'mobile')).join('/')}。请硬刷新后台`
+            )
+        }
+    } catch (e: any) {
+        ElMessage.warning(e?.message || '编译仍在进行，请到「云编译」查看')
     }
 }
 

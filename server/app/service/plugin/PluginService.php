@@ -162,17 +162,21 @@ class PluginService extends Service
 
     /**
      * Take an uploaded zip, extract it to a tmp dir, move into plugins/<code>/,
-     * then run the standard install lifecycle. Returns the installed plugin code.
+     * then run the standard install lifecycle.
+     *
+     * @return array{code: string, backend: string, mode?: string, builds: array<string, mixed>}
      */
-    public function uploadAndInstall(string $zipPath): string
+    public function uploadAndInstall(string $zipPath): array
     {
         return $this->installFromZip($zipPath, 'local_zip');
     }
 
     /**
      * Download a purchased Shop component from the official site and install it.
+     *
+     * @return array{code: string, backend: string, builds: array<string, mixed>}
      */
-    public function installFromOfficial(string $code, ?string $version = null): string
+    public function installFromOfficial(string $code, ?string $version = null): array
     {
         $code = trim($code);
         if ($code === '' || !preg_match('/^[a-z][a-z0-9_]*$/', $code)) {
@@ -227,7 +231,10 @@ class PluginService extends Service
         return $rows;
     }
 
-    public function installFromZip(string $zipPath, string $entitlementSource = 'local_zip'): string
+    /**
+     * @return array{code: string, backend: string, builds: array<string, mixed>}
+     */
+    public function installFromZip(string $zipPath, string $entitlementSource = 'local_zip'): array
     {
         $tmpDir   = rtrim((string) runtime_path(), '/\\') . DIRECTORY_SEPARATOR . 'pluginrt_' . uniqid('', true);
         $manifest = PluginInstaller::extract($zipPath, $tmpDir);
@@ -253,7 +260,21 @@ class PluginService extends Service
             PluginManager::install($manifest, Plugin::SOURCE_DOWNLOADED);
         }
         $this->grantLocalEntitlement($manifest->code, $entitlementSource);
-        return $manifest->code;
+        return $this->installPayload($manifest->code);
+    }
+
+    /**
+     * @return array{code: string, backend: string, builds: array<string, mixed>}
+     */
+    private function installPayload(string $code): array
+    {
+        $builds = PluginManager::$lastFrontend;
+        return [
+            'code'    => $code,
+            'backend' => 'installed',
+            'mode'    => (string) ($builds['mode'] ?? 'cloud'),
+            'builds'  => $builds,
+        ];
     }
 
     private function assertOfficialEntitlement(OfficialCatalogClient $client, string $token, string $code): void

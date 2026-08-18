@@ -13,7 +13,13 @@ class AppService extends Service
 {
     public function register()
     {
-        // 服务注册
+        $this->app->bind(\core\plugin\contracts\ShellExecutor::class, fn () => new \core\plugin\ProcShellExecutor());
+        $this->app->bind(\core\plugin\PluginBuilder::class, function () {
+            return new \core\plugin\PluginBuilder($this->app->make(\core\plugin\contracts\ShellExecutor::class));
+        });
+        $this->app->bind(\core\mobile\UniBuildRunner::class, function () {
+            return new \core\mobile\UniBuildRunner($this->app->make(\core\plugin\contracts\ShellExecutor::class));
+        });
     }
 
     public function boot()

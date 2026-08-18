@@ -1,27 +1,55 @@
 {
-  "code": "sign",
-  "name": "签到配置",
-  "version": "1.0.0",
-  "description": "每日签到送积分，支持连续签到加成与签到补卡",
-  "author": "ydadmin",
-  "category": "core",
-  "parent_menu": "Marketing",
-  "palette": ["#22c55e", "#16a34a"],
-  "requires": { "php": ">=8.0", "framework": ">=1.0.0", "plugins": [] },
-  "menus": [
-    {
-      "name": "MarketingSignConfig",
-      "title": "签到配置",
-      "path": "/marketing/sign-config",
-      "component": "/marketing/sign-config/index",
-      "icon": "i-lucide:calendar-check",
-      "permission": "sign.list",
-      "sort": 8
+    "code": "sign",
+    "name": "签到配置",
+    "version": "1.0.0",
+    "description": "每日签到送积分，支持连续签到加成与签到补卡",
+    "author": "ydadmin",
+    "category": "core",
+    "parent_menu": "Marketing",
+    "palette": [
+        "#22c55e",
+        "#16a34a"
+    ],
+    "requires": {
+        "php": ">=8.0",
+        "framework": ">=1.0.0",
+        "plugins": []
+    },
+    "menus": [
+        {
+            "name": "MarketingSignConfig",
+            "title": "签到配置",
+            "path": "/marketing/sign-config",
+            "component": "/marketing/sign-config/index",
+            "icon": "i-lucide:calendar-check",
+            "permission": "sign.list",
+            "sort": 8
+        }
+    ],
+    "permissions": [
+        {
+            "name": "sign.list",
+            "title": "签到配置列表",
+            "group": "marketing"
+        },
+        {
+            "name": "sign.update",
+            "title": "编辑签到配置",
+            "group": "marketing"
+        }
+    ],
+    "routes": {
+        "admin": "app/adminapi/route.php",
+        "api": "app/api/route.php"
+    },
+    "c_end": {
+        "entries": [
+            {
+                "slot": "user.functions",
+                "label": "签到",
+                "uniapp": "/modules/user/pages/sign",
+                "pc": "/user/sign"
+            }
+        ]
     }
-  ],
-  "permissions": [
-    { "name": "sign.list",   "title": "签到配置列表", "group": "marketing" },
-    { "name": "sign.update", "title": "编辑签到配置", "group": "marketing" }
-  ],
-  "routes": { "admin": "route/admin.php", "api": "route/api.php" }
 }

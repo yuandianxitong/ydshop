@@ -9,7 +9,7 @@ use app\repository\user\UserRepository;
 use app\service\common\ExcelExportService;
 use core\base\Service;
 use core\exception\BusinessException;
-use core\plugin\PluginManager;
+use core\plugin\HookManager;
 
 class AccountFundService extends Service
 {
@@ -27,11 +27,8 @@ class AccountFundService extends Service
         if (is_object($this->withdrawalRepo)) {
             return $this->withdrawalRepo;
         }
-        $class = \plugins\distribution\repository\DistributionWithdrawalRepository::class;
-        if (!PluginManager::isInstalled('distribution') || !class_exists($class)) {
-            return null;
-        }
-        return $this->withdrawalRepo = app($class);
+        $repo = HookManager::apply('finance.withdrawal_repo', [], null);
+        return $this->withdrawalRepo = is_object($repo) ? $repo : null;
     }
 
     private function distributionWithdrawalService(): object
@@ -39,11 +36,11 @@ class AccountFundService extends Service
         if (is_object($this->distributionWithdrawalService)) {
             return $this->distributionWithdrawalService;
         }
-        $class = \plugins\distribution\service\DistributionWithdrawalService::class;
-        if (!PluginManager::isInstalled('distribution') || !class_exists($class)) {
+        $svc = HookManager::apply('finance.withdrawal_service', [], null);
+        if (!is_object($svc)) {
             throw new BusinessException('分销插件未安装');
         }
-        return $this->distributionWithdrawalService = app($class);
+        return $this->distributionWithdrawalService = $svc;
     }
 
     /**

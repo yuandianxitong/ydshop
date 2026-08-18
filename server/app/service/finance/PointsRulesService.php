@@ -6,7 +6,7 @@ namespace app\service\finance;
 use app\model\system\SystemConfig;
 use app\service\member\MemberLevelService;
 use core\base\Service;
-use core\plugin\PluginManager;
+use core\plugin\HookManager;
 
 class PointsRulesService extends Service
 {
@@ -56,27 +56,6 @@ class PointsRulesService extends Service
             'config_url' => '/marketing/new-user-gift',
         ];
 
-        if (!PluginManager::isInstalled('new_user_gift')
-            || !class_exists('\plugins\new_user_gift\service\NewUserGiftService')
-        ) {
-            return $fallback;
-        }
-
-        try {
-            /** @var \plugins\new_user_gift\service\NewUserGiftService $svc */
-            $svc   = app(\plugins\new_user_gift\service\NewUserGiftService::class);
-            $gifts = $svc->getActiveGifts();
-            $points = 0;
-            foreach ($gifts as $gift) {
-                $points += (int) ($gift['points'] ?? 0);
-            }
-            return [
-                'enabled'    => $gifts !== [],
-                'points'     => $points,
-                'config_url' => '/marketing/new-user-gift',
-            ];
-        } catch (\Throwable) {
-            return $fallback;
-        }
+        return HookManager::apply('finance.register_gift_overview', [], $fallback);
     }
 }

@@ -48,6 +48,9 @@ class CommonController extends Controller
             $result = array_merge($result, array_intersect_key($diyConfigs, array_flip($diyPublicKeys)));
 
             $result['installed_plugins'] = \core\plugin\PluginManager::loadedPlugins();
+            $storefront = app(\app\service\diy\DiyCatalogService::class)->storefrontExtras();
+            $result['plugin_entries'] = $storefront['entries'];
+            $result['plugin_public_paths'] = $storefront['public_paths'];
 
             // 合并商城风格配置（主题色）
             $shopStyleConfigs = \app\model\system\SystemConfig::getConfigsByGroup('shop_style');

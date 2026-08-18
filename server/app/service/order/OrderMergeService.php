@@ -268,13 +268,12 @@ class OrderMergeService extends Service
         return $survivorId;
     }
 
-    /** 优惠券改绑保留为可测试边界；实现委托优惠券插件 Service。 */
+    /** 优惠券改绑保留为可测试边界；实现由插件 hook。 */
     protected function rebindOrderCoupon(int $fromOrderId, int $toOrderId): void
     {
-        if (\core\plugin\PluginManager::isInstalled('coupon')
-            && class_exists('\plugins\coupon\service\CouponService')
-        ) {
-            app(\plugins\coupon\service\CouponService::class)->rebindOrder($fromOrderId, $toOrderId);
-        }
+        \core\plugin\HookManager::apply('order.rebind_coupon', [
+            'from_order_id' => $fromOrderId,
+            'to_order_id'   => $toOrderId,
+        ]);
     }
 }

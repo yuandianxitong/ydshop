@@ -13,6 +13,8 @@ class PluginFrontendMap
     public const ALLOWED_PREFIXES = [
         'admin/src/',
         'pc/pages/',
+        'pc/api/',
+        'pc/components/',
         'uniapp/src/',
     ];
 

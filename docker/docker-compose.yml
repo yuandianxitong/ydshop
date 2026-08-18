@@ -33,6 +33,33 @@ services:
       - yd-admin-network
     restart: unless-stopped
 
+  # 带 Node 的构建 worker。PHP-FPM（php 服务）不要跑 frontend-builds。
+  frontend-builder:
+    build:
+      context: ./frontend-builder
+      dockerfile: Dockerfile
+    container_name: yd-admin-frontend-builder
+    working_dir: /workspace/server
+    volumes:
+      - ..:/workspace
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - MOBILE_BUILD_TIMEOUT_SEC=600
+    networks:
+      - yd-admin-network
+    command: ["php", "think", "queue:work", "--queue=frontend-builds", "--tries=1", "--timeout=900", "--sleep=3"]
+    restart: unless-stopped
+    profiles:
+      - build
+
   mysql:
     image: mysql:8.0
     container_name: yd-admin-mysql
