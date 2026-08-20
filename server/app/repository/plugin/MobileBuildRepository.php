@@ -43,9 +43,16 @@ class MobileBuildRepository extends Repository
         return $this->getModel()->db()->whereIn('id', $ids)->order('id desc')->select()->toArray();
     }
 
+    public function hasActive(): bool
+    {
+        return $this->getModel()->db()
+            ->whereIn('status', [MobileBuild::STATUS_QUEUED, MobileBuild::STATUS_RUNNING])
+            ->count() > 0;
+    }
+
     public function markRunning(int $id): bool
     {
-        return $this->update($id, [
+        return $this->updateIfStatus($id, [MobileBuild::STATUS_QUEUED], [
             'status'     => MobileBuild::STATUS_RUNNING,
             'started_at' => date('Y-m-d H:i:s'),
         ]);
@@ -53,7 +60,7 @@ class MobileBuildRepository extends Repository
 
     public function markSuccess(int $id, string $log, string $artifactPath): bool
     {
-        return $this->update($id, [
+        return $this->updateIfStatus($id, [MobileBuild::STATUS_RUNNING], [
             'status'        => MobileBuild::STATUS_SUCCESS,
             'log'           => $log,
             'artifact_path' => $artifactPath,
@@ -63,7 +70,7 @@ class MobileBuildRepository extends Repository
 
     public function markFailed(int $id, string $log): bool
     {
-        return $this->update($id, [
+        return $this->updateIfStatus($id, [MobileBuild::STATUS_QUEUED, MobileBuild::STATUS_RUNNING], [
             'status'      => MobileBuild::STATUS_FAILED,
             'log'         => $log,
             'finished_at' => date('Y-m-d H:i:s'),
@@ -77,5 +84,26 @@ class MobileBuildRepository extends Repository
             'upload_result_json' => $resultJson,
             'finished_at'        => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    public function markCancelled(int $id, string $log): bool
+    {
+        return $this->updateIfStatus($id, [MobileBuild::STATUS_QUEUED, MobileBuild::STATUS_RUNNING], [
+            'status'      => MobileBuild::STATUS_CANCELLED,
+            'log'         => $log,
+            'finished_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * @param list<int> $fromStatuses
+     * @param array<string, mixed> $data
+     */
+    private function updateIfStatus(int $id, array $fromStatuses, array $data): bool
+    {
+        return $this->getModel()->db()
+            ->where('id', $id)
+            ->whereIn('status', $fromStatuses)
+            ->update($data) > 0;
     }
 }

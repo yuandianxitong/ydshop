@@ -24,7 +24,7 @@ class AppService extends Service
 
     public function boot()
     {
-        // 启动插件系统（营销插件：优惠券、满减、秒杀、拼团）
+        // 发现插件并注册自动加载 / 事件 / 钩子；HTTP 路由由各应用 route/plugin.php 挂载
         PluginManager::boot();
     }
 }

@@ -22,9 +22,10 @@ server/plugins/{code}/
 - 命名空间示例：`plugins\coupon\adminapi\controller\CouponController`
 - 无 `app/` 的旧 zip 仍从插件根加载（boot 时 PSR-4 回退）
 - `plugin.json` 可声明 `hooks`、`commands`、`diy`、`c_end`、`uniapp.subPackages`
-- 安装/入册/升级软链同步三端并合并 `pages.json`，再入队云编译；卸载撤回软链并重编宿主
+- HTTP 路由由 `app/adminapi/route/plugin.php` 与 `app/api/route/plugin.php` 在 MultiApp 定应用后按端加载
+- 安装/入册/升级软链或拷贝同步三端并合并 `pages.json`（不入队云编译）
 - 开发机：`admin`/`pc` 的 `predev` 跑 `scripts/sync-plugins.mjs`
-- 生产：`php think queue:work --queue=frontend-builds`（Node sidecar，禁止 PHP-FPM exec pnpm）
+- 生产部署多为 `server` + `uniapp`：后台页需已打进 `public/admin`；新付费后台页要在完整仓编完再部署产物
 - 官方小程序页已在发行包则跳过 C 端编；新原生页走「客户端发布」
 - 手动只同步：`php think plugin:frontend-deploy {code|--all}`
 

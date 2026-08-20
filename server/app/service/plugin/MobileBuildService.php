@@ -19,6 +19,7 @@ class MobileBuildService extends Service
 
     protected MobileBuildRepository $buildRepo;
     protected UniBuildRunner $runner;
+    protected FrontendBuildCoordinator $buildCoordinator;
 
     /**
      * @return list<array<string, mixed>>
@@ -47,19 +48,28 @@ class MobileBuildService extends Service
                 ),
             ];
         }
+        $this->buildCoordinator->assertIdle();
         return [
-            $this->enqueue(MobileBuild::PLATFORM_H5, $trigger, $code),
-            $this->enqueue(MobileBuild::PLATFORM_MP_WEIXIN, $trigger, $code),
+            $this->enqueue(MobileBuild::PLATFORM_H5, $trigger, $code, null, true),
+            $this->enqueue(MobileBuild::PLATFORM_MP_WEIXIN, $trigger, $code, null, true),
         ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function enqueue(string $platform, string $trigger, ?string $pluginCode = null, ?int $operatorId = null): array
-    {
+    public function enqueue(
+        string $platform,
+        string $trigger,
+        ?string $pluginCode = null,
+        ?int $operatorId = null,
+        bool $skipIdleCheck = false
+    ): array {
         if (!in_array($platform, [MobileBuild::PLATFORM_H5, MobileBuild::PLATFORM_MP_WEIXIN], true)) {
             throw new BusinessException("invalid platform: {$platform}", 422);
+        }
+        if (!$skipIdleCheck) {
+            $this->buildCoordinator->assertIdle();
         }
         $row = $this->buildRepo->create([
             'platform'    => $platform,
@@ -76,31 +86,80 @@ class MobileBuildService extends Service
 
     public function run(int $buildId): void
     {
-        $build = $this->buildRepo->find($buildId);
-        if (!$build || (int) $build['status'] !== MobileBuild::STATUS_QUEUED) {
-            return;
-        }
-        $this->buildRepo->markRunning($buildId);
-
-        $uniappDir = realpath(App::getRootPath() . '../uniapp') ?: '';
-        if ($uniappDir === '' || !is_dir($uniappDir)) {
-            $this->buildRepo->markFailed($buildId, '[service] uniapp dir not found');
-            return;
-        }
-
-        try {
-            $result = $this->runner->run($uniappDir, (string) $build['platform']);
-            if (!$result['success']) {
-                $this->buildRepo->markFailed($buildId, $result['log']);
+        $this->buildCoordinator->withLock(function () use ($buildId): void {
+            $build = $this->buildRepo->find($buildId);
+            if (!$build || (int) $build['status'] !== MobileBuild::STATUS_QUEUED) {
                 return;
             }
-            if ((string) $build['platform'] === MobileBuild::PLATFORM_H5) {
-                $this->promoteH5($result['artifactPath']);
+            if (!$this->buildRepo->markRunning($buildId)) {
+                return;
             }
-            $this->buildRepo->markSuccess($buildId, $result['log'], $result['artifactPath']);
-        } catch (\Throwable $e) {
-            $this->buildRepo->markFailed($buildId, '[exception] ' . $e->getMessage());
+
+            $uniappDir = realpath(App::getRootPath() . '../uniapp') ?: '';
+            if ($uniappDir === '' || !is_dir($uniappDir)) {
+                $this->buildRepo->markFailed($buildId, '[service] uniapp dir not found');
+                return;
+            }
+
+            try {
+                $result = $this->runner->run(
+                    $uniappDir,
+                    (string) $build['platform'],
+                    fn () => $this->isCancelled($buildId)
+                );
+                if ($this->isCancelled($buildId)) {
+                    return;
+                }
+                if (!$result['success']) {
+                    $this->buildRepo->markFailed($buildId, $result['log']);
+                    return;
+                }
+                if ((string) $build['platform'] === MobileBuild::PLATFORM_H5) {
+                    $this->promoteH5($result['artifactPath']);
+                }
+                $this->buildRepo->markSuccess($buildId, $result['log'], $result['artifactPath']);
+            } catch (\Throwable $e) {
+                if ($this->isCancelled($buildId)) {
+                    return;
+                }
+                $this->buildRepo->markFailed($buildId, '[exception] ' . $e->getMessage());
+            }
+        });
+    }
+
+    public function cancel(int $id): void
+    {
+        $row = $this->buildRepo->find($id);
+        if (!$row) {
+            throw new BusinessException('构建不存在', 404);
         }
+        $status = (int) $row['status'];
+        if (!in_array($status, [MobileBuild::STATUS_QUEUED, MobileBuild::STATUS_RUNNING], true)) {
+            throw new BusinessException('当前状态不可取消', 422);
+        }
+        $note = trim((string) ($row['log'] ?? ''));
+        $note = ($note !== '' ? $note . "\n" : '') . '[cancel] 已取消';
+        if (!$this->buildRepo->markCancelled($id, $note)) {
+            throw new BusinessException('当前状态不可取消', 422);
+        }
+    }
+
+    public function delete(int $id): void
+    {
+        $row = $this->buildRepo->find($id);
+        if (!$row) {
+            throw new BusinessException('构建不存在', 404);
+        }
+        if ((int) $row['status'] === MobileBuild::STATUS_RUNNING) {
+            throw new BusinessException('请先取消正在编译的任务', 422);
+        }
+        $this->buildRepo->delete($id);
+    }
+
+    private function isCancelled(int $id): bool
+    {
+        $row = $this->buildRepo->find($id);
+        return $row !== null && (int) $row['status'] === MobileBuild::STATUS_CANCELLED;
     }
 
     /**

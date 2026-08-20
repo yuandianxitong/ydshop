@@ -15,16 +15,25 @@ class WechatMiniprogramUploadService extends Service
     protected MobileBuildRepository $buildRepo;
     protected MobileChannelConfigRepository $configRepo;
 
-    public function saveKey(string $appid, string $privateKey): void
+    public function saveKey(string $appid, string $privateKey, string $version = ''): void
     {
         $appid = trim($appid);
-        if ($appid === '' || $privateKey === '') {
+        $existing = $this->configRepo->singleton() ?? [];
+        $keepKey = $privateKey === '' && ($existing['wechat_upload_key'] ?? '') !== '';
+        if ($appid === '' || ($privateKey === '' && !$keepKey)) {
             throw new BusinessException('请填写 AppID 与上传密钥', 422);
+        }
+        $ver = trim($version);
+        if ($ver === '') {
+            $ver = (string) ($existing['wechat_upload_version'] ?? '1.0.0');
+        }
+        if (!preg_match('/^\d+\.\d+\.\d+$/', $ver)) {
+            throw new BusinessException('版本号格式应为 x.y.z', 422);
         }
         $this->configRepo->upsert([
             'wechat_appid'          => $appid,
-            'wechat_upload_key'     => $this->seal($privateKey),
-            'wechat_upload_version' => $this->nextVersion($this->configRepo->singleton()['wechat_upload_version'] ?? '1.0.0'),
+            'wechat_upload_key'     => $keepKey ? (string) $existing['wechat_upload_key'] : $this->seal($privateKey),
+            'wechat_upload_version' => $ver,
         ]);
     }
 

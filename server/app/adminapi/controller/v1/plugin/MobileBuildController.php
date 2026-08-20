@@ -47,7 +47,8 @@ class MobileBuildController extends Controller
     {
         $this->uploadService->saveKey(
             (string) $this->request->post('wechat_appid', ''),
-            (string) $this->request->post('wechat_upload_key', '')
+            (string) $this->request->post('wechat_upload_key', ''),
+            (string) $this->request->post('wechat_upload_version', '')
         );
         return $this->success('已保存');
     }
@@ -63,5 +64,19 @@ class MobileBuildController extends Controller
     public function upload(int $id): Response
     {
         return $this->success('已上传开发版', $this->uploadService->upload($id));
+    }
+
+    #[Permission('mobile.build')]
+    public function cancel(int $id): Response
+    {
+        $this->mobileBuildService->cancel($id);
+        return $this->success('已取消');
+    }
+
+    #[Permission('mobile.build')]
+    public function delete(int $id): Response
+    {
+        $this->mobileBuildService->delete($id);
+        return $this->success('已删除');
     }
 }

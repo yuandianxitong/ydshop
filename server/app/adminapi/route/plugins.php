@@ -22,6 +22,8 @@ Route::group('mobile-builds', function () {
     Route::post('channel', 'v1.plugin.MobileBuildController/saveChannel');
     Route::delete('channel', 'v1.plugin.MobileBuildController/clearChannel');
     Route::post(':id/upload', 'v1.plugin.MobileBuildController/upload')->pattern(['id' => '\d+']);
+    Route::post(':id/cancel', 'v1.plugin.MobileBuildController/cancel')->pattern(['id' => '\d+']);
+    Route::delete(':id', 'v1.plugin.MobileBuildController/delete')->pattern(['id' => '\d+']);
 })->middleware(['admin_full']);
 
 Route::group('market', function () {

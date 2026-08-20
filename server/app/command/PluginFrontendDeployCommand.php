@@ -47,7 +47,7 @@ class PluginFrontendDeployCommand extends Command
             $n = PluginFrontendDeployer::deployFromPluginDir($item);
             $output->writeln("<info>[{$item}] 同步 {$n} 个软链/文件</info>");
         }
-        $output->writeln('<comment>开发机重启 Vite；生产请等待 frontend-builds 队列或手动重建</comment>');
+        $output->writeln('<comment>开发机重启 Vite；生产请重新部署已构建的 public/admin（如有新后台页）</comment>');
         return 0;
     }
 }

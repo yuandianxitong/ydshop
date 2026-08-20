@@ -19,6 +19,7 @@ class PluginBuildService extends Service
 
     protected PluginBuildRepository $buildRepo;
     protected PluginBuilder $builder;
+    protected FrontendBuildCoordinator $buildCoordinator;
 
     /**
      * 生产默认入队；开发机（app_debug）只软链，除非 FRONTEND_CLOUD_BUILD=1。
@@ -50,10 +51,11 @@ class PluginBuildService extends Service
             }
             return $rows;
         }
-        $rows[] = $this->enqueue(PluginBuild::TARGET_ADMIN, $trigger, $code);
+        $this->buildCoordinator->assertIdle();
+        $rows[] = $this->enqueue(PluginBuild::TARGET_ADMIN, $trigger, $code, null, true);
         $pcDir = rtrim(PluginManager::pluginsPath() . $code, '/\\') . '/pc';
         if (is_dir($pcDir)) {
-            $rows[] = $this->enqueue(PluginBuild::TARGET_PC, $trigger, $code);
+            $rows[] = $this->enqueue(PluginBuild::TARGET_PC, $trigger, $code, null, true);
         }
         return $rows;
     }
@@ -61,10 +63,18 @@ class PluginBuildService extends Service
     /**
      * @return array<string, mixed>
      */
-    public function enqueue(string $target, string $trigger, ?string $pluginCode = null, ?int $operatorId = null): array
-    {
+    public function enqueue(
+        string $target,
+        string $trigger,
+        ?string $pluginCode = null,
+        ?int $operatorId = null,
+        bool $skipIdleCheck = false
+    ): array {
         if (!in_array($target, [PluginBuild::TARGET_ADMIN, PluginBuild::TARGET_PC], true)) {
             throw new BusinessException("invalid target: {$target}", 422);
+        }
+        if (!$skipIdleCheck) {
+            $this->buildCoordinator->assertIdle();
         }
         $row = $this->buildRepo->create([
             'target'      => $target,
@@ -81,31 +91,33 @@ class PluginBuildService extends Service
 
     public function run(int $buildId): void
     {
-        $build = $this->buildRepo->find($buildId);
-        if (!$build || (int) $build['status'] !== PluginBuild::STATUS_QUEUED) {
-            return;
-        }
-        $this->buildRepo->markRunning($buildId);
-
-        $target = (string) $build['target'];
-        $rootPath = App::getRootPath();
-        $sourceDir = realpath($rootPath . '../' . $target) ?: '';
-        $publicDir = $rootPath . 'public';
-        if ($sourceDir === '' || !is_dir($sourceDir)) {
-            $this->buildRepo->markFailed($buildId, "[service] source dir not found: {$rootPath}../{$target}");
-            return;
-        }
-
-        try {
-            $result = $this->builder->build($target, $sourceDir, $publicDir);
-            if ($result['exitCode'] === 0) {
-                $this->buildRepo->markSuccess($buildId, $result['log'], $result['artifactPath']);
-            } else {
-                $this->buildRepo->markFailed($buildId, $result['log']);
+        $this->buildCoordinator->withLock(function () use ($buildId): void {
+            $build = $this->buildRepo->find($buildId);
+            if (!$build || (int) $build['status'] !== PluginBuild::STATUS_QUEUED) {
+                return;
             }
-        } catch (\Throwable $e) {
-            $this->buildRepo->markFailed($buildId, '[exception] ' . $e->getMessage());
-        }
+            $this->buildRepo->markRunning($buildId);
+
+            $target = (string) $build['target'];
+            $rootPath = App::getRootPath();
+            $sourceDir = realpath($rootPath . '../' . $target) ?: '';
+            $publicDir = $rootPath . 'public';
+            if ($sourceDir === '' || !is_dir($sourceDir)) {
+                $this->buildRepo->markFailed($buildId, "[service] source dir not found: {$rootPath}../{$target}");
+                return;
+            }
+
+            try {
+                $result = $this->builder->build($target, $sourceDir, $publicDir);
+                if ($result['exitCode'] === 0) {
+                    $this->buildRepo->markSuccess($buildId, $result['log'], $result['artifactPath']);
+                } else {
+                    $this->buildRepo->markFailed($buildId, $result['log']);
+                }
+            } catch (\Throwable $e) {
+                $this->buildRepo->markFailed($buildId, '[exception] ' . $e->getMessage());
+            }
+        });
     }
 
     /**

@@ -1,0 +1,1 @@
+import{S as o}from"./index.CuEGStjm.js";const a={getCouponList:a=>o.get("/adminapi/marketing/coupon",{params:a}),createCoupon:a=>o.post("/adminapi/marketing/coupon",a),updateCoupon:(a,n)=>o.put(`/adminapi/marketing/coupon/${a}`,n),deleteCoupon:a=>o.delete(`/adminapi/marketing/coupon/${a}`)};export{a as c};

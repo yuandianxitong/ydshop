@@ -1,0 +1,1 @@
+import{S as i}from"./index.CuEGStjm.js";const a={getConfig:()=>i.get("/adminapi/marketing/sign-config"),updateConfig:a=>i.put("/adminapi/marketing/sign-config",a)},g={getList:a=>i.get("/adminapi/marketing/sign-config/logs",{params:a}),getStats:()=>i.get("/adminapi/marketing/sign-config/stats")};export{a,g as s};

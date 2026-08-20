@@ -24,7 +24,7 @@ use think\facade\Db;
  *   "version":     "1.0.0",
  *   "category":    "core",
  *   "parent_menu": "Marketing",
- *   "routes":      { "admin": "route/admin.php", "api": "route/api.php" },
+ *   "routes":      { "admin": "app/adminapi/route.php", "api": "app/api/route.php" },
  *   "events":      "event.php",
  *   "hooks":       ["CouponDiscountHook"]
  * }
@@ -39,7 +39,7 @@ class PluginManager
     /** @var array{frontend?: int, mode?: string, admin_pc?: list<array<string, mixed>>, mobile?: list<array<string, mixed>>} */
     public static array $lastFrontend = [];
 
-    /** 入册等批量操作设为 false，只软链不同步入队云编 */
+    /** 兼容入册命令的旧开关；安装已不再入队云编 */
     public static bool $runFrontendQueue = true;
 
     /** @var array<string, PluginManifest> code => manifest */
@@ -54,72 +54,89 @@ class PluginManager
     /**
      * Boot all installed plugins. Reads the plugins table to decide which
      * plugins to load; rows with status=disabled are skipped.
-     * Safe to call multiple times — plugin discovery/events/hooks run once,
-     * HTTP routes are re-registered per request for the current app.
+     * Safe to call multiple times — plugin discovery/events/hooks run once.
+     * HTTP routes are registered from app/{adminapi,api}/route/plugin.php.
      */
     public static function boot(): void
     {
-        if (!self::$booted) {
-            self::$booted = true;
+        self::discoverInstalled();
+    }
 
-            $cached = self::readCache();
-            if ($cached !== null) {
-                $codes = array_keys($cached);
-            } else {
-                try {
-                    $codes = Plugin::where('status', 'installed')->column('code');
-                } catch (\Throwable) {
-                    // Installer phase: plugins table doesn't exist yet.
-                    return;
-                }
-            }
+    /**
+     * 在 adminapi / api 的 route/*.php 里调用：此时 MultiApp 已定应用名。
+     * 不可在 AppService::boot() 里注册——那时应用名未定，会把 C 端路由装进后台。
+     */
+    public static function registerHttpRoutes(): void
+    {
+        self::discoverInstalled();
+        self::registerLoadedPluginRoutes();
+    }
 
-            $pluginsDir = self::pluginsPath();
-            if (!is_dir($pluginsDir)) {
+    /**
+     * 发现已安装插件并注册自动加载 / 事件 / 钩子。不注册 HTTP 路由。
+     */
+    private static function discoverInstalled(): void
+    {
+        if (self::$booted) {
+            return;
+        }
+        self::$booted = true;
+
+        $cached = self::readCache();
+        if ($cached !== null) {
+            $codes = array_keys($cached);
+        } else {
+            try {
+                $codes = Plugin::where('status', 'installed')->column('code');
+            } catch (\Throwable) {
+                // Installer phase: plugins table doesn't exist yet.
                 return;
-            }
-
-            foreach ($codes as $code) {
-                try {
-                    if (!\core\license\LicenseGuard::canUsePlugin((string) $code)) {
-                        continue;
-                    }
-                } catch (\Throwable) {
-                    // 安装期或授权模块未就绪时不阻断 boot
-                }
-                $dir = $pluginsDir . $code . DIRECTORY_SEPARATOR;
-                if (!is_dir($dir)) {
-                    continue;
-                }
-
-                $manifestFile = $dir . 'plugin.json';
-                if (!is_file($manifestFile)) {
-                    continue;
-                }
-
-                try {
-                    $manifest = PluginManifest::fromFile($manifestFile);
-                } catch (PluginException) {
-                    continue;
-                }
-
-                self::$plugins[$code] = $manifest;
-                self::$pluginDirs[$code] = $dir;
-                self::registerAutoload($code, $dir);
-
-                self::registerEvents($code, $dir, $manifest);
-                self::registerHooks($code, $manifest->raw);
-
-                $pluginClass = 'plugins\\' . $code . '\\Plugin';
-                if (class_exists($pluginClass)) {
-                    /** @var PluginInterface $plugin */
-                    $plugin = new $pluginClass();
-                    $plugin->boot();
-                }
             }
         }
 
-        self::registerLoadedPluginRoutes();
+        $pluginsDir = self::pluginsPath();
+        if (!is_dir($pluginsDir)) {
+            return;
+        }
+
+        foreach ($codes as $code) {
+            try {
+                if (!\core\license\LicenseGuard::canUsePlugin((string) $code)) {
+                    continue;
+                }
+            } catch (\Throwable) {
+                // 安装期或授权模块未就绪时不阻断 boot
+            }
+            $dir = $pluginsDir . $code . DIRECTORY_SEPARATOR;
+            if (!is_dir($dir)) {
+                continue;
+            }
+
+            $manifestFile = $dir . 'plugin.json';
+            if (!is_file($manifestFile)) {
+                continue;
+            }
+
+            try {
+                $manifest = PluginManifest::fromFile($manifestFile);
+            } catch (PluginException) {
+                continue;
+            }
+
+            self::$plugins[$code] = $manifest;
+            self::$pluginDirs[$code] = $dir;
+            self::registerAutoload($code, $dir);
+
+            self::registerEvents($code, $dir, $manifest);
+            self::registerHooks($code, $manifest->raw);
+
+            $pluginClass = 'plugins\\' . $code . '\\Plugin';
+            if (class_exists($pluginClass)) {
+                /** @var PluginInterface $plugin */
+                $plugin = new $pluginClass();
+                $plugin->boot();
+            }
+        }
     }
 
     /**
@@ -136,8 +153,8 @@ class PluginManager
     }
 
     /**
-     * Require route files declared in manifest["routes"], with a fallback to the
-     * conventional route/admin.php and route/api.php when manifest omits "routes".
+     * Require route files declared in manifest["routes"]，缺省时只加载
+     * app/adminapi/route.php 与 app/api/route.php。
      *
      * 必须按当前 HTTP 应用拆开加载：admin 与 api 常有同名分组（如 article/list），
      * 两套都注册进 /api 时，后台 admin_full 会先命中，C 端带用户 token 就会 401。
@@ -168,11 +185,7 @@ class PluginManager
 
         $fallbacks = [
             ['admin', 'app/adminapi/route.php'],
-            ['admin', 'app/route/admin.php'],
-            ['admin', 'route/admin.php'],
             ['api', 'app/api/route.php'],
-            ['api', 'app/route/api.php'],
-            ['api', 'route/api.php'],
         ];
         foreach ($fallbacks as [$scope, $rel]) {
             if (!self::routeScopeMatchesApp($scope, $rel, $appName)) {
@@ -189,17 +202,23 @@ class PluginManager
     {
         try {
             $name = (string) app()->http->getName();
-            if ($name !== '') {
+            if (in_array($name, ['adminapi', 'api'], true)) {
                 return $name;
             }
         } catch (\Throwable) {
         }
 
-        $uri = (string) ($_SERVER['PATH_INFO'] ?? $_SERVER['REQUEST_URI'] ?? '');
-        if (str_contains($uri, '/adminapi')) {
+        // PATH_INFO 常被 nginx / MultiApp 剥掉应用前缀，不能单独用来判断
+        $haystack = implode("\n", [
+            (string) ($_SERVER['REQUEST_URI'] ?? ''),
+            (string) ($_SERVER['SCRIPT_NAME'] ?? ''),
+            (string) ($_SERVER['PHP_SELF'] ?? ''),
+            (string) ($_SERVER['PATH_INFO'] ?? ''),
+        ]);
+        if (str_contains($haystack, '/adminapi')) {
             return 'adminapi';
         }
-        if (preg_match('#(?:^|/)api(?:/|$)#', $uri) === 1) {
+        if (preg_match('#(?:^|/)api(?:/|$)#m', $haystack) === 1) {
             return 'api';
         }
         return '';
@@ -217,13 +236,9 @@ class PluginManager
             $target = 'api';
         }
 
-        // 无法识别的 scope 不装任何应用，避免后台路由误进 /api
-        if ($target === '') {
+        // 无法识别的 scope、或应用名未定时不装，避免 C 端路由进 /adminapi
+        if ($target === '' || $appName === '') {
             return false;
-        }
-        // 应用名未知时只装 C 端路由，宁可不注册后台
-        if ($appName === '') {
-            return $target === 'api';
         }
         return $target === $appName;
     }
@@ -952,43 +967,39 @@ class PluginManager
     }
 
     /**
-     * @return array{frontend: int, admin_pc: list<array<string, mixed>>, mobile: list<array<string, mixed>>}
+     * @return array{frontend: int, mode?: string, admin_pc: list<array<string, mixed>>, mobile: list<array<string, mixed>>}
      */
     private static function runFrontendAfter(string $code, string $trigger): array
     {
-        if (!self::$runFrontendQueue) {
+        $empty = ['frontend' => 0, 'mode' => 'sync', 'admin_pc' => [], 'mobile' => []];
+        try {
             if ($trigger === 'uninstall') {
+                if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
+                    return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterUninstall($code);
+                }
                 PluginFrontendDeployer::remove($code);
                 PluginFrontendSync::remove($code);
-                return ['frontend' => 0, 'mode' => 'sync', 'admin_pc' => [], 'mobile' => []];
+                return $empty;
+            }
+            if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
+                return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterInstall($code, $trigger);
             }
             $sync = PluginFrontendSync::sync($code);
             PluginPagesJsonMerger::merge($code);
             return ['frontend' => $sync['count'], 'mode' => 'sync', 'admin_pc' => [], 'mobile' => []];
+        } catch (\Throwable $e) {
+            self::logFrontendFailure($code, $trigger, $e);
+            return $empty;
         }
-        if ($trigger === 'uninstall') {
-            if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
-                try {
-                    return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterUninstall($code);
-                } catch (\Throwable) {
-                    PluginFrontendDeployer::remove($code);
-                    PluginFrontendSync::remove($code);
-                }
-            } else {
-                PluginFrontendDeployer::remove($code);
-                PluginFrontendSync::remove($code);
-            }
-            return ['frontend' => 0, 'mode' => 'dev', 'admin_pc' => [], 'mobile' => []];
+    }
+
+    private static function logFrontendFailure(string $code, string $trigger, \Throwable $e): void
+    {
+        $msg = "[plugin] frontend after {$trigger} {$code}: " . $e->getMessage();
+        try {
+            \think\facade\Log::warning($msg);
+        } catch (\Throwable) {
+            error_log($msg);
         }
-        if (class_exists(\app\service\plugin\PluginFrontendOrchestrator::class)) {
-            try {
-                return app(\app\service\plugin\PluginFrontendOrchestrator::class)->afterInstall($code, $trigger);
-            } catch (\Throwable) {
-                // 未跑升级脚本时构建表可能不存在，仍同步软链
-            }
-        }
-        $sync = PluginFrontendSync::sync($code);
-        PluginPagesJsonMerger::merge($code);
-        return ['frontend' => $sync['count'], 'mode' => 'dev', 'admin_pc' => [], 'mobile' => []];
     }
 }

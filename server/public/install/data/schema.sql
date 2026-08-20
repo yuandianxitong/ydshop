@@ -1983,7 +1983,7 @@ CREATE TABLE IF NOT EXISTS `mobile_builds` (
   `platform` varchar(20) NOT NULL COMMENT 'h5|mp-weixin',
   `trigger` varchar(30) NOT NULL,
   `plugin_code` varchar(64) DEFAULT NULL,
-  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0queued 1running 2success 3failed 4uploaded 5skipped',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0queued 1running 2success 3failed 4uploaded 5skipped 6cancelled',
   `log` longtext,
   `artifact_path` varchar(255) NOT NULL DEFAULT '',
   `upload_result_json` longtext,

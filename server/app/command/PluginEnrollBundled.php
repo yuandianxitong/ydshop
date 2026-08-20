@@ -140,7 +140,7 @@ class PluginEnrollBundled extends Command
         }
 
         $output->info("完成。本次入册 $total 个插件，跳过 $skipped 个。");
-        $output->writeln('<comment>已软链前端。开发机重启 Vite；生产到「云编译」重建 Admin/PC。</comment>');
+        $output->writeln('<comment>已同步前端。开发机重启 Vite；生产请重新部署已构建的 public/admin（如有新后台页）</comment>');
         return 0;
     }
 }

@@ -242,7 +242,13 @@ class PluginService extends Service
             || $manifest->category === 'value_added') {
             PackageSignatureVerifier::verifyUploadedZip($zipPath, $manifest->code, $manifest->version);
         }
-        PluginFrontendDeployer::deployFromExtracted($tmpDir);
+
+        $this->grantLocalEntitlement($manifest->code, $entitlementSource);
+        try {
+            PluginFrontendDeployer::deployFromExtracted($tmpDir);
+        } catch (\Throwable $e) {
+            $this->log('[plugin] _frontend deploy ' . $manifest->code . ': ' . $e->getMessage(), [], 'warning');
+        }
 
         $existing = $this->pluginRepository->findByCode($manifest->code);
         $pluginDir = rtrim(PluginManager::pluginsPath(), '/\\') . DIRECTORY_SEPARATOR . $manifest->code;
@@ -259,7 +265,6 @@ class PluginService extends Service
         } else {
             PluginManager::install($manifest, Plugin::SOURCE_DOWNLOADED);
         }
-        $this->grantLocalEntitlement($manifest->code, $entitlementSource);
         return $this->installPayload($manifest->code);
     }
 
@@ -272,7 +277,7 @@ class PluginService extends Service
         return [
             'code'    => $code,
             'backend' => 'installed',
-            'mode'    => (string) ($builds['mode'] ?? 'cloud'),
+            'mode'    => (string) ($builds['mode'] ?? 'sync'),
             'builds'  => $builds,
         ];
     }

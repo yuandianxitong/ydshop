@@ -26,7 +26,7 @@
 
 ## 系统简介
 
-元点Shop 是一款**免费商用**、开箱即用的全渠道单商户商城系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。秒杀、拼团、分销等能力通过官方市场组件扩展。基于 [Apache-2.0](LICENSE) 协议开源，个人和企业均可免费使用核心能力；再分发时须保留 `LICENSE`、`NOTICE` 与版权声明。「元点Shop」商标不随协议授权。秒杀、拼团、分销等付费组件请在 [官方市场](https://www.dev007.cn/market/apps?runtime=shop) 购买。
+元点Shop 是一款基于 Apache-2.0**免费商用**、开箱即用的全渠道单商户商城系统，采用主流的前后端分离架构，后端基于 ThinkPHP 8 提供 RESTful API，前端使用 Vue 3 + Element Plus 构建管理界面，移动端通过 UniApp 实现多端适配（微信小程序 / APP / H5）。秒杀、拼团、分销等能力通过官方市场组件扩展。基于 [Apache-2.0](LICENSE) 协议开源，个人和企业均可免费使用核心能力；再分发时须保留 `LICENSE`、`NOTICE` 与版权声明。「元点Shop」商标不随协议授权。秒杀、拼团、分销等付费组件请在 [官方市场](https://www.dev007.cn/market/apps?runtime=shop) 购买。
 
 系统内置完善的 RBAC 权限体系、CRUD 代码生成器和多渠道集成能力，适用于企业管理后台、SaaS 平台、电商运营等多种业务场景。开发者可基于此快速搭建业务系统，专注于核心业务逻辑开发。
 
@@ -120,6 +120,20 @@ autorestart=true
 stdout_logfile=/var/log/ydadmin-queue.log
 ```
 
+客户端发布（H5 / 小程序）走单独队列，**只起 1 个 worker**（`numprocs=1`）。4 核 4G 同机编译会占满 CPU/内存是正常现象；给 Node 限堆、限线程后站点应仍能响应。要完全不影响下单，把该 worker 迁到另一台构建机。
+
+```ini
+[program:ydadmin-frontend-builds]
+command=php think queue:work --queue=frontend-builds --tries=1 --timeout=900 --sleep=3
+directory=/your-project-path/server
+numprocs=1
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/ydadmin-frontend-builds.log
+```
+
+宝塔 / systemd 建议限制该进程：`MemoryMax=1800M`、`CPUQuota=200%`。建议加 2G swap，避免 OOM killer 直接杀掉 MySQL。可用 `MOBILE_BUILD_NODE_MB`（默认 1536）和 `MOBILE_BUILD_THREADS`（默认 2）调整信封。
+
 ### 手动安装
 
 ```bash
@@ -161,17 +175,15 @@ npm run build        # 构建生产版本
 
 构建产物会输出到 `server/public/admin/`，上传至服务器即可生效。
 
-公开仓克隆后请入册免费插件（开发机 `npm run dev` 会先 sync 软链；生产由 `frontend-builds` 队列编 admin/PC）：
+公开仓克隆后请入册免费插件（开发机 `npm run dev` 会先 sync 软链；安装不再入队云编译）：
 
 ```bash
 cd server
 php think plugin:enroll-bundled
 php think yd:update
-# 可选：只同步软链，不编译
+# 可选：只同步软链 / 拷贝，不编译
 php think plugin:frontend-deploy --all
-# 生产 worker（须本机或 sidecar 已装 Node，不要在 PHP-FPM 里跑）
-php think queue:work --queue=frontend-builds --tries=1 --timeout=900 --sleep=3
-# 或：cd docker && docker compose --profile build up -d frontend-builder
+# 线上接口 404 时：删除 runtime/plugins_cache.php 后重载 PHP
 ```
 
 移动端开发：

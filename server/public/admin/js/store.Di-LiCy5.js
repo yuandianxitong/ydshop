@@ -1,1 +1,0 @@
-import{S as e}from"./index.CyVReB6Q.js";const i={list:i=>e.get("/adminapi/store",{params:i}),detail:i=>e.get(`/adminapi/store/${i}`),create:i=>e.post("/adminapi/store",i),update:(i,a)=>e.put(`/adminapi/store/${i}`,a),delete:i=>e.delete(`/adminapi/store/${i}`),pickupVerify:(i,a)=>e.put(`/adminapi/order/order/${i}/pickup-verify`,{pickup_code:a})};export{i as s};

@@ -19,7 +19,7 @@
                 @click="selectLink(item)"
               >
                 <span>{{ item.label }}</span>
-                <el-tag v-if="item.needSelect || item.need_select" size="small" type="info">需选择</el-tag>
+                <el-tag v-if="item.needSelect" size="small" type="info">需选择</el-tag>
               </div>
             </div>
 

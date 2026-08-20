@@ -1,0 +1,1 @@
+import{S as t}from"./index.CuEGStjm.js";const i={getFullDiscountList:i=>t.get("/adminapi/marketing/full-discount",{params:i}),createFullDiscount:i=>t.post("/adminapi/marketing/full-discount",i),updateFullDiscount:(i,a)=>t.put(`/adminapi/marketing/full-discount/${i}`,a),deleteFullDiscount:i=>t.delete(`/adminapi/marketing/full-discount/${i}`)};export{i as f};

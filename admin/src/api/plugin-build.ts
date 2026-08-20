@@ -47,7 +47,7 @@ export const mobileBuildApi = {
             '/adminapi/mobile-builds/channel'
         )
     },
-    saveChannel(data: { wechat_appid: string; wechat_upload_key: string }) {
+    saveChannel(data: { wechat_appid: string; wechat_upload_key?: string; wechat_upload_version?: string }) {
         return myRequest.post<void>('/adminapi/mobile-builds/channel', data)
     },
     clearChannel() {
@@ -55,6 +55,12 @@ export const mobileBuildApi = {
     },
     upload(id: number) {
         return myRequest.post<{ ok: boolean; output: string; version: string }>(`/adminapi/mobile-builds/${id}/upload`)
+    },
+    cancel(id: number) {
+        return myRequest.post<void>(`/adminapi/mobile-builds/${id}/cancel`)
+    },
+    delete(id: number) {
+        return myRequest.delete<void>(`/adminapi/mobile-builds/${id}`)
     },
 }
 
@@ -66,6 +72,7 @@ export function buildStatusLabel(status: number, kind: 'web' | 'mobile' = 'web')
         3: '失败',
         4: kind === 'mobile' ? '已上传开发版' : '未知',
         5: kind === 'mobile' ? '已跳过（预置页）' : '已跳过（开发机软链）',
+        6: '已取消',
     }
     return map[status] ?? String(status)
 }
@@ -75,7 +82,7 @@ export async function waitForBuilds(
     mobileIds: number[],
     onTick?: (web: PluginBuildInfo[], mobile: MobileBuildInfo[]) => void
 ) {
-    const done = (s: number) => s === 2 || s === 3 || s === 4 || s === 5
+    const done = (s: number) => s === 2 || s === 3 || s === 4 || s === 5 || s === 6
     for (let i = 0; i < 180; i++) {
         const [web, mobile] = await Promise.all([
             webIds.length ? pluginBuildApi.list({ ids: webIds.join(',') }) : Promise.resolve({ data: { list: [] } }),

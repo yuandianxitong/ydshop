@@ -5,8 +5,9 @@
 ## [Unreleased]
 
 ### Added
-- 插件安装改为软链同步宿主前端；生产入队 `frontend-builds` 云编译 admin/PC，开发机（`app_debug`）只软链不入队；官方已预置小程序页跳过 C 端编
-- 后台「云编译 / 客户端发布」：旁路 Node worker（`docker compose --profile build`）消费队列，`miniprogram-ci` 上传为渠道发布而非安装步骤
+- 客户端发布任务支持删除；排队中 / 编译中可取消，worker 会终止 pnpm 进程
+- 插件安装改为软链或拷贝同步宿主前端；官方已预置小程序页跳过 C 端编
+- 后台「客户端发布」：小程序 AppID / 私钥 / 版本号改为弹窗配置；`miniprogram-ci` 上传为渠道发布而非安装步骤
 - 装修目录接口 `GET /adminapi/diy/catalog`：链接/组件按已装插件下发；C 端入口与公开路径由 `plugin.json` 的 `c_end` 声明
 - 官方插件迁入 `app/adminapi` + `app/api` 分层；三端专属页面与 API 客户端进插件包，安装/入册拷回主工程
 - `php think plugin:frontend-deploy`；安装合并、卸载撤回 `pages.json`
@@ -15,8 +16,10 @@
 - `plugin:pack` 将付费组件对应的 admin / PC / uniapp 页面打入 zip 的 `_frontend/`，安装时自动部署；支持 `--all`
 
 ### Changed
+- 客户端发布同机编译加资源信封（nice / Node 堆 1536MB / 2 线程）、lockfile 未变跳过 `pnpm install`、全局单飞；4 核 4G 上同时只跑一个前端构建
 - 新装默认首页导航与 PC 顶栏不再预置秒杀/拼团/领券死链；插件命令改由 `plugin.json` `commands` 注册
-- 公开仓克隆后需执行 `plugin:enroll-bundled`；开发机 `admin`/`pc` 的 `predev` 会 sync 软链，生产等 `frontend-builds` 队列编完再硬刷新
+- 公开仓克隆后需执行 `plugin:enroll-bundled`；开发机 `admin`/`pc` 的 `predev` 会 sync 软链。安装不再入队云编译，「云编译」菜单默认隐藏
+- 插件安装成功后刷新后台动态路由，无需整页硬刷新才能打开新菜单
 - PC 端头部 Logo / 网站名称改读系统配置 `site_logo`、`site_name`
 - PC 端商品详情数量改为购物车同款「减 / 输入 / 加」
 - PC 端我的订单恢复默认头尾，列表改为购物车式表格并展示全部商品
@@ -29,6 +32,12 @@
 - 公开仓库改为 `yuandianxitong/ydshop`（GitHub / Gitee）
 
 ### Fixed
+- 客户端发布点击编译后状态停留在构建中，需刷新浏览器才更新；列表在排队/编译中自动轮询
+- 客户端发布 H5：uni/Rollup 无法解析 Pinia 的 `@vue/devtools-*` 链式依赖；直装并按 importer 再 resolve
+- 拼团后台 500：路由改为 `plugins\group_buy\adminapi\controller\GroupBuyController`，不再使用旧 `controller\admin` 类名
+- 免费插件后台列表（优惠券/满减/签到等）生产 404：插件路由改在 MultiApp 定应用后再注册，避免 C 端路由抢占 `/adminapi`
+- 生产环境禁用 `symlink` 时安装插件不再因未限定命名空间的 `symlink()` 返回 500；失败回退为拷贝
+- 本地 zip 安装在前端同步前写入付费权益，避免 `group-buy` 等接口 404
 - PC 端确认订单添加地址弹窗主按钮被 Tailwind reset 冲成白底；改为主题色，并补齐 Naive 主按钮背景
 - PC 端商品详情 Tab 选中色为 Naive 默认绿，与主题色不一致；改为跟随 `--color-primary`，并给 NConfigProvider 设置 primaryColor
 - PC 端商品详情无法选择规格：公开详情返回 `specNames` / `spec_value_ids`，页面却读不存在的 `sku.attributes`；改为按 uniapp 同款字段组规格并回写选中 SKU。立即购买补上 `goods_id`，结算页规格名用 `spec_text`

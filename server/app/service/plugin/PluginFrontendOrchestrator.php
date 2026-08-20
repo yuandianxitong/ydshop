@@ -9,13 +9,10 @@ use core\plugin\PluginFrontendSync;
 use core\plugin\PluginPagesJsonMerger;
 
 /**
- * 安装后：软链同步 + 合 pages.json + 入队云编。不在 FPM 里 exec pnpm。
+ * 安装后：软链或拷贝同步 + 合 pages.json。不入队云编，不在 FPM 里 exec pnpm。
  */
 class PluginFrontendOrchestrator extends Service
 {
-    protected PluginBuildService $pluginBuildService;
-    protected MobileBuildService $mobileBuildService;
-
     /**
      * @return array{frontend: int, mode: string, admin_pc: list<array<string, mixed>>, mobile: list<array<string, mixed>>}
      */
@@ -23,12 +20,11 @@ class PluginFrontendOrchestrator extends Service
     {
         $sync = PluginFrontendSync::sync($code);
         PluginPagesJsonMerger::merge($code);
-        $mode = PluginBuildService::shouldCloudBuild() ? 'cloud' : 'dev';
         return [
             'frontend' => $sync['count'],
-            'mode'     => $mode,
-            'admin_pc' => $this->pluginBuildService->enqueueForPlugin($code, $trigger),
-            'mobile'   => $this->mobileBuildService->enqueueForPlugin($code, $trigger),
+            'mode'     => 'sync',
+            'admin_pc' => [],
+            'mobile'   => [],
         ];
     }
 
@@ -39,11 +35,10 @@ class PluginFrontendOrchestrator extends Service
     {
         PluginFrontendDeployer::remove($code);
         PluginFrontendSync::remove($code);
-        $mode = PluginBuildService::shouldCloudBuild() ? 'cloud' : 'dev';
         return [
-            'mode'     => $mode,
-            'admin_pc' => $this->pluginBuildService->enqueueForPlugin($code, 'uninstall'),
-            'mobile'   => $this->mobileBuildService->enqueueForPlugin($code, 'uninstall'),
+            'mode'     => 'sync',
+            'admin_pc' => [],
+            'mobile'   => [],
         ];
     }
 }

@@ -426,7 +426,7 @@ INSERT INTO `menus` (`id`, `parent_id`, `type`, `title`, `name`, `path`, `compon
   (8, 0, 1, '插件管理', 'Plugin', '/plugins', 'LAYOUT', '/plugins/installed', 'i-svg:box', 'plugin.installed', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 60, NOW(), NOW()),
   (1820, 8, 2, '已安装插件', 'PluginInstalled', '/plugins/installed', '/plugins/installed/index', NULL, 'i-lucide:layout-grid',  'plugin.installed', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),
   (1821, 8, 2, '插件市场',   'PluginMarket',    '/plugins/market',    '/plugins/market/index',    NULL, 'i-lucide:shopping-bag', 'plugin.market',    0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 2, NOW(), NOW()),
-  (1822, 8, 2, '云编译',     'PluginBuilds',    '/plugins/builds',    '/plugins/builds/index',    NULL, 'i-lucide:cloud',        'plugin.build',     0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 3, NOW(), NOW()),
+  (1822, 8, 2, '云编译',     'PluginBuilds',    '/plugins/builds',    '/plugins/builds/index',    NULL, 'i-lucide:cloud',        'plugin.build',     1, 1, 0, 0, NULL, 1, NULL, NULL, 0, 3, NOW(), NOW()),
   (1824, 8, 2, '客户端发布', 'PluginMobileBuilds', '/plugins/mobile-builds', '/plugins/mobile-builds/index', NULL, 'i-lucide:smartphone', 'mobile.build', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 4, NOW(), NOW()),
   (1800, 1300, 2, '区域管理', 'AppRegion', '/app/region', '/content/region/index', NULL, 'i-svg:map-pinned', 'region.list', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 8, NOW(), NOW()),
   (1801, 1800, 3, '新增', NULL, NULL, NULL, NULL, NULL, 'region.create', 0, 1, 0, 0, NULL, 1, NULL, NULL, 1, 1, NOW(), NOW()),

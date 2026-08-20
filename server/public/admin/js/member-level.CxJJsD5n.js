@@ -1,1 +1,0 @@
-import{S as e}from"./index.CyVReB6Q.js";const m={getList:m=>e.get("/adminapi/member/member-level",{params:m}),create:m=>e.post("/adminapi/member/member-level",m),update:(m,a)=>e.put(`/adminapi/member/member-level/${m}`,a),delete:m=>e.delete(`/adminapi/member/member-level/${m}`)};export{m};

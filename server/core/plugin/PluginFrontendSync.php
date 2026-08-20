@@ -174,8 +174,14 @@ class PluginFrontendSync
         }
         self::removePath($to);
         $rel = self::relative($parent, $from);
-        if (@symlink($rel, $to)) {
-            return true;
+        if (\function_exists('symlink')) {
+            try {
+                if (@\symlink($rel, $to)) {
+                    return true;
+                }
+            } catch (\Throwable) {
+                // disable_functions 含 symlink 时是 Error，@ 压不住
+            }
         }
         if (is_dir($from)) {
             return self::copyDir($from, $to);

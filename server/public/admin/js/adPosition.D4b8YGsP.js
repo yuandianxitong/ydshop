@@ -1,0 +1,1 @@
+import{S as i}from"./index.CuEGStjm.js";const a={getList:a=>i.get("/adminapi/ad-positions/list",{params:a}),getAll:()=>i.get("/adminapi/ad-positions/all"),getDetail:a=>i.get(`/adminapi/ad-positions/${a}`),create:a=>i.post("/adminapi/ad-positions",a),update:(a,t)=>i.put(`/adminapi/ad-positions/${a}`,t),delete:a=>i.delete(`/adminapi/ad-positions/${a}`)};export{a};

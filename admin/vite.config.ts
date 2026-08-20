@@ -1,12 +1,12 @@
 import vue from "@vitejs/plugin-vue";
-import { type ConfigEnv, loadEnv, defineConfig } from "vite";
+import { type ConfigEnv, type Plugin, loadEnv, defineConfig } from "vite";
 
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 import UnoCSS from "unocss/vite";
-import { resolve } from "path";
+import { resolve, sep } from "path";
 import { readdirSync, existsSync } from "fs";
 import { searchForWorkspaceRoot } from "vite";
 import { name, version, engines, dependencies, devDependencies } from "./package.json";
@@ -21,6 +21,23 @@ function getElementPlusStyleIncludes(): string[] {
     } catch {
         return [];
     }
+}
+
+/** 软链插件页的裸依赖从 admin 入口再解析，避免 Rollup 沿 server/plugins 真实路径找 node_modules。 */
+function resolvePluginBareImportsFromAdmin(): Plugin {
+    const adminImporter = resolve(__dirname, "src/main.ts");
+    const pluginMarker = `${sep}server${sep}plugins${sep}`;
+    return {
+        name: "resolve-plugin-bare-imports-from-admin",
+        enforce: "pre",
+        async resolveId(source, importer, options) {
+            if (!importer || !source) return null;
+            if (source[0] === "." || source[0] === "/" || source[0] === "\0") return null;
+            if (source.startsWith("@/")) return null;
+            if (!importer.includes(pluginMarker)) return null;
+            return this.resolve(source, adminImporter, { ...options, skipSelf: true });
+        },
+    };
 }
 
 // 平台的名称、版本、运行所需的 node 版本、依赖、构建时间的类型提示
@@ -43,9 +60,28 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         // 生产环境部署到 /admin/ 子目录
         base: "/admin/",
         resolve: {
-            alias: {
-                "@": pathSrc
-            },
+            // 插件页经软链落在 server/plugins，裸依赖必须钉死到 admin/node_modules，
+            // 否则 Rollup 沿真实路径向上找，解析不到 element-plus/es。
+            dedupe: ["vue", "vue-router", "pinia", "vue-i18n", "element-plus", "@element-plus/icons-vue"],
+            alias: [
+                { find: "@", replacement: pathSrc },
+                {
+                    find: /^@element-plus\/icons-vue$/,
+                    replacement: resolve(__dirname, "node_modules/@element-plus/icons-vue/dist/index.js"),
+                },
+                {
+                    find: /^element-plus$/,
+                    replacement: resolve(__dirname, "node_modules/element-plus/es/index.mjs"),
+                },
+                {
+                    find: /^element-plus\/es$/,
+                    replacement: resolve(__dirname, "node_modules/element-plus/es/index.mjs"),
+                },
+                {
+                    find: /^element-plus\/es\/(.+)$/,
+                    replacement: resolve(__dirname, "node_modules/element-plus/es/$1"),
+                },
+            ],
         },
 
         css: {
@@ -86,6 +122,7 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         },
 
         plugins: [
+            resolvePluginBareImportsFromAdmin(),
             vue(),
             UnoCSS(),
 

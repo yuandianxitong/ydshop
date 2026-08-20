@@ -55,6 +55,13 @@ class PluginBuildRepository extends Repository
         return $row ? (is_array($row) ? $row : $row->toArray()) : null;
     }
 
+    public function hasActive(): bool
+    {
+        return $this->getModel()->db()
+            ->whereIn('status', [PluginBuild::STATUS_QUEUED, PluginBuild::STATUS_RUNNING])
+            ->count() > 0;
+    }
+
     public function markRunning(int $id): bool
     {
         return $this->update($id, [
